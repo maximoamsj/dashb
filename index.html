@@ -288,20 +288,20 @@ async function initApp(){
 }
 
 async function loadMasterFromDB(){
-  const{data}=await sb.from('master_items').select('*');
-  if(data)data.forEach(r=>{masterItems[r.code]={supplier:r.supplier,description:r.description,price:r.price,group:r.item_group,bu:r.business_unit}});
+  const data=await fetchAll('master_items');
+  data.forEach(r=>{masterItems[r.code]={supplier:r.supplier,description:r.description,price:r.price,group:r.item_group,bu:r.business_unit}});
 }
 async function loadCscartFromDB(){
-  const{data}=await sb.from('cscart_stock').select('*');
-  if(data)data.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
+  const data=await fetchAll('cscart_stock');
+  data.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
 }
 async function loadExactFromDB(){
-  const{data}=await sb.from('exact_stock').select('*');
-  if(data)data.forEach(r=>{exactStock[r.code]=r.stock});
+  const data=await fetchAll('exact_stock');
+  data.forEach(r=>{exactStock[r.code]=r.stock});
 }
 async function loadSalesFromDB(){
-  const{data}=await sb.from('sales_monthly').select('*');
-  if(!data)return;
+  const data=await fetchAll('sales_monthly');
+  if(!data.length)return;
   salesHistory={};
   data.forEach(r=>{
     if(!salesHistory[r.period])salesHistory[r.period]=[];
@@ -310,10 +310,10 @@ async function loadSalesFromDB(){
   salesPeriods=Object.keys(salesHistory).sort();
 }
 async function loadChinaFromDB(){
-  const{data:cp}=await sb.from('china_products').select('*');
-  if(cp)cp.forEach(r=>{chinaProducts[r.code]={leadTime:r.lead_time,group:r.item_group}});
-  const{data:cs}=await sb.from('china_seasonality').select('*');
-  if(cs)cs.forEach(r=>{chinaSeasonality[r.product_group]={avg:r.avg,factors:[r.s1,r.s2,r.s3,r.s4,r.s5,r.s6,r.s7,r.s8,r.s9,r.s10,r.s11,r.s12]}});
+  const cp=await fetchAll('china_products');
+  cp.forEach(r=>{chinaProducts[r.code]={leadTime:r.lead_time,group:r.item_group}});
+  const cs=await fetchAll('china_seasonality');
+  cs.forEach(r=>{chinaSeasonality[r.product_group]={avg:r.avg,factors:[r.s1,r.s2,r.s3,r.s4,r.s5,r.s6,r.s7,r.s8,r.s9,r.s10,r.s11,r.s12]}});
 }
 
 // ═══════════════════════════════════════════════
@@ -327,6 +327,7 @@ function monthDiff(a,b){return(b.getFullYear()-a.getFullYear())*12+(b.getMonth()
 function addMonths(d,n){const r=new Date(d);r.setMonth(r.getMonth()+n);return r}
 function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000)}
 async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i+=batchSize){const chunk=rows.slice(i,i+batchSize);const{error}=await sb.from(table).upsert(chunk,{onConflict:undefined});if(error)throw error}}
+async function fetchAll(table,pageSize=1000){let all=[],from=0;while(true){const{data,error}=await sb.from(table).select('*').range(from,from+pageSize-1);if(error)throw error;if(!data||!data.length)break;all=all.concat(data);if(data.length<pageSize)break;from+=pageSize;}return all}
 
 function updateStatus(){
   const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
