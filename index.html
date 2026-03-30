@@ -576,15 +576,25 @@ function projectStock(code,curStock,avg,group,orderQty,arrDate){
     let recv=0;if(arrDate&&orderQty>0&&d.getMonth()===arrDate.getMonth()&&d.getFullYear()===arrDate.getFullYear())recv=orderQty;
     stock=stock-sales+recv;months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
 
+function getChinaAvg(code){
+  const p=salesPeriods;if(!p.length)return{avg:0,activeMo:0,totalMo:0};
+  const rec=p.slice(-12);let t=0,activeMo=0;
+  rec.forEach(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);if(it&&it.quantity>0){t+=it.quantity;activeMo++}});
+  return{avg:activeMo>0?Math.round(t/activeMo*10)/10:0,activeMo,totalMo:rec.length};
+}
+
 function getStockoutInfo(code){
   const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
-  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0),avg=getAvg3Mo(code),group=cp.group||m.group||'',lt=cp.leadTime||120;
+  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0);
+  const chinaAvg=getChinaAvg(code);
+  const avg=chinaAvg.avg,activeMo=chinaAvg.activeMo,totalMo=chinaAvg.totalMo;
+  const group=cp.group||m.group||'',lt=cp.leadTime||120;
   const proj=projectStock(code,curStock,avg,group,0,null);
   let soIdx=-1;for(let i=0;i<proj.length;i++){if(proj[i].stock<=0){soIdx=i;break}}
   const soDate=soIdx>=0?proj[soIdx].date:null,obDate=soDate?new Date(soDate.getTime()-lt*86400000):null;
   const draft=draftOrder[code];let projO=proj;
   if(draft&&draft.qty>0){const ai=document.getElementById('orderArrival');const arr=ai&&ai.value?new Date(ai.value):addMonths(new Date(),4);projO=projectStock(code,curStock,avg,group,draft.qty,arr)}
-  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,leadTime:lt,projection:proj,projWithOrder:projO,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(ex!==undefined?'E':'?')}}
+  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,activeMo,totalMo,leadTime:lt,projection:proj,projWithOrder:projO,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(ex!==undefined?'E':'?')}}
 
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
 
@@ -602,7 +612,7 @@ function renderChinaTable(){
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
     const useP=inO?r.projWithOrder:r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.currentStock}</td><td>${r.avg||'—'}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td></tr>`}).join('');
+    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td></tr>`}).join('');
   renderOrderPanel();}
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
 
