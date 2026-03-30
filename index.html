@@ -356,10 +356,11 @@ async function loadMaster(input){
       const hdr=all[hi].map(c=>String(c).trim().toLowerCase());
       const ci=hdr.indexOf('code'),cS=hdr.findIndex(h=>h.includes('main supplier')||h==='supplier'),cD=hdr.indexOf('description');
       const cP=hdr.findIndex(h=>h.includes('sales price')),cG=hdr.findIndex(h=>h.includes('item group')),cB=hdr.findIndex(h=>h.includes('business unit'));
-      const rows=[];masterItems={};
+      const deduped={};masterItems={};
       for(let i=hi+1;i<all.length;i++){const row=all[i];const code=String(row[ci]||'').trim();if(!code)continue;
         const item={code,supplier:cS>=0?String(row[cS]||'').trim():'',description:cD>=0?String(row[cD]||'').trim():'',price:cP>=0?parseNum(row[cP]):0,item_group:cG>=0?String(row[cG]||'').trim():'',business_unit:cB>=0?String(row[cB]||'').trim():''};
-        rows.push(item);masterItems[code]={supplier:item.supplier,description:item.description,price:item.price,group:item.item_group,bu:item.business_unit};}
+        deduped[code]=item;masterItems[code]={supplier:item.supplier,description:item.description,price:item.price,group:item.item_group,bu:item.business_unit};}
+      const rows=Object.values(deduped);
       await sb.from('master_items').delete().neq('code','');
       await batchUpsert('master_items',rows);
       toast(`Master: ${rows.length} products saved`);updateStatus();rebuildMerged();
@@ -378,10 +379,14 @@ async function loadCscart(input){
       const text=new TextDecoder().decode(new Uint8Array(e.target.result));
       const delim=text.split('\n')[0].includes(';')?';':',';
       const parsed=Papa.parse(text,{header:true,delimiter:delim,skipEmptyLines:true});
-      const rows=[];cscartData={};
+      const deduped={};cscartData={};
       parsed.data.forEach(row=>{const code=String(row['Product code']||'').trim();if(!code)return;
         const stock=parseNum(row['Showroom (Warehouse)']),status=({'A':'A','H':'H','D':'D'})[String(row['Status']||'').trim().toUpperCase()]||'A';
-        rows.push({code,stock,status,updated_at:new Date().toISOString()});cscartData[code]={stock,status};});
+        // Deduplicate: keep Active over Hidden/Disabled, sum stock
+        if(!deduped[code]){deduped[code]={code,stock,status,updated_at:new Date().toISOString()}}
+        else{deduped[code].stock+=stock;if(status==='A')deduped[code].status='A'}});
+      const rows=Object.values(deduped);
+      rows.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
       await sb.from('cscart_stock').delete().neq('code','');
       await batchUpsert('cscart_stock',rows);
       toast(`Cscart: ${rows.length} items saved`);updateStatus();rebuildMerged();
@@ -404,11 +409,12 @@ async function loadExactStock(input){
       const hdr=all[hi].map(c=>String(c).trim().toLowerCase());
       const ci=hdr.indexOf('item code'),cis=hdr.indexOf('in stock'),cpo=hdr.indexOf('planned out');
       if(ci<0||cis<0){alert('Missing columns');return}
-      const rows=[];exactStock={};
+      const deduped={};exactStock={};
       for(let i=hi+1;i<all.length;i++){const row=all[i];const code=String(row[ci]||'').trim();
         if(!code||code.toLowerCase()==='carried forward')continue;
         const stock=parseNum(row[cis])-(cpo>=0?parseNum(row[cpo]):0);
-        rows.push({code,stock,updated_at:new Date().toISOString()});exactStock[code]=stock;}
+        deduped[code]={code,stock,updated_at:new Date().toISOString()};exactStock[code]=stock;}
+      const rows=Object.values(deduped);
       await sb.from('exact_stock').delete().neq('code','');
       await batchUpsert('exact_stock',rows);
       toast(`Exact: ${rows.length} items saved`);updateStatus();rebuildMerged();
