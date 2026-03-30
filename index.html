@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenners Purchasing Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0c1017;--bg2:#131a24;--bg3:#1a2332;--bg4:#212d3b;--border:#2a3a4a;--text:#c8d0dc;--text2:#8896a8;--text3:#556677;--accent:#3b82f6;--red:#ef4444;--orange:#f59e0b;--green:#22c55e;--cyan:#06b6d4;--purple:#a78bfa;--font:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;overflow:hidden}
+.app{display:flex;height:100vh}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.logo{padding:20px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:15px;letter-spacing:.5px;color:#fff}.logo span{color:var(--accent);font-weight:400}
+.nav{flex:1;padding:12px 8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}.nav-item.active{background:var(--accent);color:#fff}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}.nav-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:600}
+.sidebar-section{padding:10px 16px;border-top:1px solid var(--border)}.sidebar-section h4{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:8px}
+.data-status{font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.data-status .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}.data-status .dot.on{background:var(--green)}.data-status .dot.off{background:var(--text3)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg2);gap:10px;flex-shrink:0;flex-wrap:wrap}
+.topbar h2{font-size:16px;font-weight:600;color:#fff;margin-right:auto}
+.btn{padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--bg4);border-color:var(--text3)}.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn-primary:hover{background:#2563eb}
+.btn.loading{opacity:.5;pointer-events:none}
+.content{flex:1;overflow-y:auto;padding:20px 24px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.card-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);margin-bottom:6px;font-weight:500}
+.card-value{font-size:26px;font-weight:700;font-family:var(--mono);color:#fff}
+.card-value.red{color:var(--red)}.card-value.orange{color:var(--orange)}.card-value.green{color:var(--green)}.card-value.cyan{color:var(--cyan)}.card-value.purple{color:var(--purple)}
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-group{display:flex;align-items:center;gap:6px}
+.filter-group label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:500}
+select,input[type=text],input[type=number],input[type=date]{padding:6px 10px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:12px;outline:none}
+select:focus,input:focus{border-color:var(--accent)}
+input[type=file]{display:none}input[type=number]{width:70px;font-family:var(--mono)}
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.table-scroll{overflow:auto;max-height:calc(100vh - 340px)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{position:sticky;top:0;z-index:2}
+th{background:var(--bg3);padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none}
+th:hover{color:var(--text)}
+td{padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;white-space:nowrap}
+tr:hover{background:var(--bg3)}
+tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-left:3px solid var(--orange)}tr.urgent-low{border-left:3px solid var(--cyan)}
+.stock-diff{font-size:10px;padding:2px 5px;border-radius:3px;font-weight:600}.stock-diff.warn{background:rgba(239,68,68,.15);color:var(--red)}
+.status-filter{display:flex;gap:4px}
+.status-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:11px;font-family:var(--font);font-weight:500}
+.status-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.1)}
+.clear-btn{margin-left:auto;font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline}.clear-btn:hover{color:var(--text)}
+.tab-content{display:none}.tab-content.active{display:block}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}.empty-state h3{font-size:16px;color:var(--text);margin-bottom:8px}.empty-state p{font-size:13px;margin-bottom:16px;line-height:1.5}
+.setup-steps{text-align:left;max-width:520px;margin:0 auto}
+.setup-step{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0}
+.step-num.done{background:var(--green);border-color:var(--green);color:#fff}
+.step-text{flex:1}.step-text strong{color:var(--text);display:block;margin-bottom:2px;font-size:13px}.step-text span{font-size:12px}
+.sales-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px}.chart-box h3{font-size:13px;font-weight:600;color:#fff;margin-bottom:12px}.chart-container{position:relative;height:280px}
+.period-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.period-tag{padding:4px 10px;border-radius:4px;background:var(--bg3);border:1px solid var(--green);font-size:11px;font-family:var(--mono);color:var(--green);display:inline-flex;align-items:center;gap:6px}
+.period-tag .del{cursor:pointer;opacity:.4;font-size:14px;line-height:1;font-family:var(--font);font-weight:700}.period-tag .del:hover{opacity:1;color:var(--red)}
+.clickable-row{cursor:pointer}.highlight-row{background:var(--bg4)!important}
+.supplier-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.supplier-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:all .15s}
+.supplier-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.supplier-card h4{font-size:13px;font-weight:600;color:#fff;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.supplier-meta{display:flex;gap:16px;font-size:12px;color:var(--text2)}.supplier-meta .stat{display:flex;flex-direction:column;gap:2px}
+.supplier-meta .stat-val{font-family:var(--mono);font-weight:600;font-size:14px}.supplier-meta .stat-val.red{color:var(--red)}.supplier-meta .stat-val.orange{color:var(--orange)}
+.bar{height:4px;background:var(--bg4);border-radius:2px;margin-top:10px;overflow:hidden;display:flex}.bar-seg{height:100%}.bar-red{background:var(--red)}.bar-orange{background:var(--orange)}.bar-green{background:var(--green)}
+.st-badge{font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;letter-spacing:.3px}
+.st-A{background:rgba(34,197,94,.15);color:var(--green)}.st-H{background:rgba(245,158,11,.12);color:var(--orange)}.st-D{background:rgba(85,102,119,.2);color:var(--text3)}.st-E{background:rgba(6,182,212,.12);color:var(--cyan)}
+.china-layout{display:grid;grid-template-columns:1fr 360px;gap:20px;height:calc(100vh - 130px)}
+.china-layout .left{overflow-y:auto}
+.china-layout .right{overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.order-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.order-header h3{font-size:14px;font-weight:600;color:#fff}
+.order-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.order-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.order-item-top strong{font-size:12px;color:#fff}.order-item-top .remove{cursor:pointer;color:var(--text3);font-size:16px}.order-item-top .remove:hover{color:var(--red)}
+.order-item-desc{font-size:11px;color:var(--text2);margin-bottom:8px;font-family:var(--font)}
+.order-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px}.order-fields label{font-size:10px;color:var(--text3);display:block;margin-bottom:2px}
+.order-total{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.order-total-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}.order-total-row.big{font-size:16px;font-weight:700;color:#fff}
+.timeline-mini{display:flex;gap:1px;align-items:flex-end;height:24px}.timeline-mini .tm{flex:1;border-radius:1px;min-width:3px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-size:13px;color:var(--text);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.error{border-color:var(--red);color:var(--red)}
+@media(max-width:900px){.china-layout{grid-template-columns:1fr}}
+#lockScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#lockScreen.hidden{display:none}
+.lock-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;width:340px}
+.lock-box h2{font-size:18px;font-weight:700;color:#fff;margin-bottom:6px}
+.lock-box p{font-size:12px;color:var(--text2);margin-bottom:20px}
+.lock-box input{width:100%;padding:10px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;font-family:var(--font);outline:none;margin-bottom:12px;text-align:center}
+.lock-box input:focus{border-color:var(--accent)}
+.lock-box .lock-btn{width:100%;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.lock-box .lock-btn:hover{background:#2563eb}
+.lock-error{color:var(--red);font-size:12px;margin-bottom:10px;display:none}
+</style>
+</head>
+<body>
+<div id="lockScreen">
+  <div class="lock-box">
+    <h2>KENNERS Purchasing</h2>
+    <p>Enter the password to access the dashboard</p>
+    <div class="lock-error" id="lockError">Incorrect password</div>
+    <input type="password" id="lockInput" placeholder="Password" autofocus onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="lock-btn" onclick="checkPassword()">Unlock</button>
+  </div>
+</div>
+<div class="app" id="appMain" style="display:none">
+  <div class="sidebar">
+    <div class="logo">KENNERS <span>Purchasing</span></div>
+    <div class="nav">
+      <div class="nav-item active" data-tab="stock" onclick="switchTab('stock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Stock Alerts<span class="badge" id="alertBadge" style="display:none">0</span></div>
+      <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Monthly Sales</div>
+      <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
+      <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
+    </div>
+    <div class="sidebar-section">
+      <h4>Data Status</h4>
+      <div class="data-status"><div class="dot off" id="dotMaster"></div><span id="lblMaster">Master: loading...</span></div>
+      <div class="data-status"><div class="dot off" id="dotCscart"></div><span id="lblCscart">Cscart: loading...</span></div>
+      <div class="data-status"><div class="dot off" id="dotExact"></div><span id="lblExact">Exact: loading...</span></div>
+      <div class="data-status"><div class="dot off" id="dotSales"></div><span id="lblSales">Sales: loading...</span></div>
+      <div class="data-status"><div class="dot off" id="dotChina"></div><span id="lblChina">China: loading...</span></div>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text3)">All data stored in Supabase</div>
+  </div>
+  <div class="main">
+    <!-- ════════════ STOCK ALERTS ════════════ -->
+    <div class="tab-content active" id="tab-stock">
+      <div class="topbar">
+        <h2>Stock Alerts</h2>
+        <button class="btn" onclick="$f('fileMaster')" id="btnMaster">LogItems (.xlsx)</button><input type="file" id="fileMaster" accept=".xlsx,.xls" onchange="loadMaster(this)">
+        <button class="btn btn-primary" onclick="$f('fileCscart')" id="btnCscart">Cscart CSV</button><input type="file" id="fileCscart" accept=".csv,.xlsx,.xls" onchange="loadCscart(this)">
+        <button class="btn btn-primary" onclick="$f('fileExact')" id="btnExact">Exact Stock (.xlsx)</button><input type="file" id="fileExact" accept=".xlsx,.xls" onchange="loadExactStock(this)">
+      </div>
+      <div class="content">
+        <div id="stockEmpty"><div class="empty-state">
+          <h3>Daily Workflow</h3><p>Load your master once, then drop the two daily exports. Everything saves to Supabase.</p>
+          <div class="setup-steps">
+            <div class="setup-step"><div class="step-num" id="step1">1</div><div class="step-text"><strong>LogItems from Exact (saved)</strong><span>Product master — upload once, updates when products change.</span></div></div>
+            <div class="setup-step"><div class="step-num" id="step2">2</div><div class="step-text"><strong>Cscart CSV (daily)</strong><span>From kenners.com — Stock + Status. Colleagues see it instantly.</span></div></div>
+            <div class="setup-step"><div class="step-num" id="step3">3</div><div class="step-text"><strong>Exact Stock Positions (daily)</strong><span>From Exact — auto-computes In stock − Planned out.</span></div></div>
+            <div class="setup-step" style="border:none"><div class="step-num" id="step4">4</div><div class="step-text"><strong>Monthly Sales (Sales tab)</strong><span>Processed CSVs → rolling 3-month avg for Months Left.</span></div></div>
+          </div>
+        </div></div>
+        <div id="stockDash" style="display:none">
+          <div class="cards" id="stockCards"></div>
+          <div class="filters">
+            <div class="filter-group"><label>Supplier</label><select id="filterSupplier" onchange="renderStockTable()"><option value="">All</option></select></div>
+            <div class="filter-group"><label>Status</label><div class="status-filter"><button class="status-btn active" data-st="A" onclick="toggleSt(this)">A</button><button class="status-btn" data-st="H" onclick="toggleSt(this)">H</button><button class="status-btn" data-st="D" onclick="toggleSt(this)">D</button><button class="status-btn" data-st="E" onclick="toggleSt(this)">E</button></div></div>
+            <div class="filter-group"><label>Search</label><input type="text" id="filterSearch" placeholder="Code or description..." oninput="renderStockTable()" style="width:200px"></div>
+            <div class="filter-group"><label>Urgency</label><select id="filterUrgency" onchange="renderStockTable()"><option value="">All</option><option value="critical">Out of stock (≤0)</option><option value="warning">Critical (&lt;1 mo)</option><option value="low">Low (&lt;2 mo)</option><option value="ok">OK (2+ mo)</option><option value="nosale">No sales data</option></select></div>
+            <span class="clear-btn" onclick="clearFilters()">Clear filters</span>
+          </div>
+          <div class="table-wrap"><div class="table-scroll"><table><thead><tr>
+            <th onclick="doSort('status')">Status</th><th onclick="doSort('code')">Code</th><th onclick="doSort('supplier')">Supplier</th><th onclick="doSort('description')" style="min-width:200px">Description</th>
+            <th onclick="doSort('stock')">Stock (CS)</th><th onclick="doSort('exact')">Stock (Exact)</th><th>Diff</th><th onclick="doSort('avg')">Avg/mo</th><th onclick="doSort('last')">Months Left</th>
+            <th onclick="doSort('price')">Price</th><th onclick="doSort('group')">Group</th>
+          </tr></thead><tbody id="stockBody"></tbody></table></div></div>
+          <div style="padding:8px 0;font-size:11px;color:var(--text3)" id="stockCount"></div>
+        </div>
+      </div>
+    </div>
+    <!-- ════════════ MONTHLY SALES ════════════ -->
+    <div class="tab-content" id="tab-sales">
+      <div class="topbar"><h2>Monthly Sales</h2><button class="btn btn-primary" onclick="$f('fileSales')" id="btnSales">Load Monthly CSV</button><input type="file" id="fileSales" accept=".csv" multiple onchange="loadSalesCSV(this)"></div>
+      <div class="content">
+        <div id="salesEmpty" class="empty-state"><h3>No sales data</h3><p>Upload processed monthly CSV files.<br>Columns: period, item_code, description, quantity, sales_value, sales_amount</p><button class="btn btn-primary" onclick="$f('fileSales')">Load Files</button></div>
+        <div id="salesDash" style="display:none">
+          <div class="period-tags" id="periodTags"></div>
+          <div class="sales-grid"><div class="chart-box"><h3>Top 20 Products (Latest Month)</h3><div class="chart-container"><canvas id="topChart"></canvas></div></div><div class="chart-box"><h3 id="trendTitle">Product Trend — click a row below</h3><div class="chart-container"><canvas id="trendChart"></canvas></div></div></div>
+          <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="salesSearch" placeholder="Code or description..." oninput="renderSalesTable()" style="width:200px"></div><div class="filter-group"><label>Sort by</label><select id="salesSort" onchange="renderSalesTable()"><option value="latest_desc">Latest month (high→low)</option><option value="latest_asc">Latest month (low→high)</option><option value="growth">Biggest growth</option><option value="decline">Biggest decline</option></select></div></div>
+          <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 560px)"><table><thead><tr id="salesHead"></tr></thead><tbody id="salesBody"></tbody></table></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- ════════════ SUPPLIERS ════════════ -->
+    <div class="tab-content" id="tab-suppliers">
+      <div class="topbar"><h2>Supplier Overview</h2><div class="filter-group"><label>Sort by</label><select id="supplierSort" onchange="renderSuppliers()"><option value="critical">Most critical</option><option value="total">Most SKUs</option><option value="name">Name A-Z</option></select></div></div>
+      <div class="content"><div id="suppliersEmpty" class="empty-state"><h3>No data</h3><p>Load files in Stock Alerts first</p></div><div class="supplier-cards" id="supplierCards"></div></div>
+    </div>
+    <!-- ════════════ CHINA ORDER PLANNER ════════════ -->
+    <div class="tab-content" id="tab-china">
+      <div class="topbar"><h2>China Order Planner</h2><button class="btn" onclick="$f('fileForecast')" id="btnForecast">Load Forecast (.xlsx)</button><input type="file" id="fileForecast" accept=".xlsx,.xls" onchange="loadForecast(this)"><button class="btn" onclick="clearChinaData()">Reset China list</button></div>
+      <div class="content">
+        <div id="chinaEmpty" class="empty-state"><h3>China Order Planner</h3><p>Upload your forecast file to identify China products and seasonality.<br>Stock and sales data come from the other tabs automatically.</p><button class="btn btn-primary" onclick="$f('fileForecast')">Load Forecast File</button></div>
+        <div id="chinaDash" style="display:none">
+          <div class="cards" id="chinaCards"></div>
+          <div class="china-layout">
+            <div class="left">
+              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
+              <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
+                <th style="width:30px"></th><th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th>
+              </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
+            </div>
+            <div class="right">
+              <div class="order-header"><h3>Order Builder</h3><span style="font-size:11px;color:var(--text2)" id="orderItemCount">0 items</span></div>
+              <div id="orderItems"></div>
+              <div id="orderEmpty" style="text-align:center;padding:30px 10px;color:var(--text3);font-size:12px">Click + on products to add them to the order</div>
+              <div class="order-total" id="orderTotal" style="display:none">
+                <div class="order-total-row"><span>Items</span><span id="otItems">0</span></div>
+                <div class="order-total-row"><span>Total units</span><span id="otUnits">0</span></div>
+                <div class="order-total-row big"><span>Est. cost</span><span id="otCost">$0</span></div>
+                <div style="margin-top:12px"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">EXPECTED ARRIVAL</label><input type="date" id="orderArrival" onchange="renderChinaTable()" style="width:100%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// PASSWORD GATE
+// Change the hash below to your own. To generate:
+//   1. Open browser console (F12)
+//   2. Run: crypto.subtle.digest('SHA-256', new TextEncoder().encode('YOUR_PASSWORD')).then(h=>console.log([...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('')))
+//   3. Copy the output and paste it below
+// ═══════════════════════════════════════════════
+const PASSWORD_HASH = 'd24e58087d4b43ff743eec7a7b17fc0dfe822bc01befc296e3a40e986f142c4a';
+
+async function sha256(str){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+
+async function checkPassword(){
+  const input=document.getElementById('lockInput').value;
+  const hash=await sha256(input);
+  if(hash===PASSWORD_HASH){
+    sessionStorage.setItem('kn_auth','1');
+    document.getElementById('lockScreen').classList.add('hidden');
+    document.getElementById('appMain').style.display='flex';
+    initApp();
+  }else{
+    document.getElementById('lockError').style.display='block';
+    document.getElementById('lockInput').value='';
+    document.getElementById('lockInput').focus();
+  }
+}
+
+// Auto-unlock if already authenticated in this session
+if(sessionStorage.getItem('kn_auth')==='1'){
+  document.getElementById('lockScreen').classList.add('hidden');
+  document.getElementById('appMain').style.display='flex';
+  window.addEventListener('DOMContentLoaded',()=>initApp());
+}
+</script>
+
+<script>
+// ═══════════════════════════════════════════════
+// SUPABASE CONFIG — FILL THESE IN
+// ═══════════════════════════════════════════════
+const SUPABASE_URL = 'https://csvsogsovidnodbeeozk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzdnNvZ3Nvdmlkbm9kYmVlb3prIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4NjI3MjUsImV4cCI6MjA5MDQzODcyNX0.USSJy2rX9lwaErgOhP3-BoSRvDZT_EFOrezEGVUBgdI';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ═══════════════════════════════════════════════
+// STATE (in-memory, loaded from Supabase on init)
+// ═══════════════════════════════════════════════
+let masterItems={}, cscartData={}, exactStock={}, mergedData=[];
+let salesHistory={}; // {period: [{item_code, description, quantity, ...}]}
+let salesPeriods=[];
+let chinaProducts={}, chinaSeasonality={};
+let draftOrder={};
+let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
+let topCI=null,trendCI=null;
+
+// ═══════════════════════════════════════════════
+// INIT — load everything from Supabase
+// ═══════════════════════════════════════════════
+async function initApp(){
+  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadSalesFromDB(),loadChinaFromDB()]);
+  updateStatus();
+  if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
+  const defArr=new Date();defArr.setDate(defArr.getDate()+120);
+  const ai=document.getElementById('orderArrival');if(ai)ai.value=defArr.toISOString().split('T')[0];
+}
+
+async function loadMasterFromDB(){
+  const{data}=await sb.from('master_items').select('*');
+  if(data)data.forEach(r=>{masterItems[r.code]={supplier:r.supplier,description:r.description,price:r.price,group:r.item_group,bu:r.business_unit}});
+}
+async function loadCscartFromDB(){
+  const{data}=await sb.from('cscart_stock').select('*');
+  if(data)data.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
+}
+async function loadExactFromDB(){
+  const{data}=await sb.from('exact_stock').select('*');
+  if(data)data.forEach(r=>{exactStock[r.code]=r.stock});
+}
+async function loadSalesFromDB(){
+  const{data}=await sb.from('sales_monthly').select('*');
+  if(!data)return;
+  salesHistory={};
+  data.forEach(r=>{
+    if(!salesHistory[r.period])salesHistory[r.period]=[];
+    salesHistory[r.period].push({item_code:r.item_code,description:r.description,quantity:r.quantity,sales_value:r.sales_value,sales_amount:r.sales_amount});
+  });
+  salesPeriods=Object.keys(salesHistory).sort();
+}
+async function loadChinaFromDB(){
+  const{data:cp}=await sb.from('china_products').select('*');
+  if(cp)cp.forEach(r=>{chinaProducts[r.code]={leadTime:r.lead_time,group:r.item_group}});
+  const{data:cs}=await sb.from('china_seasonality').select('*');
+  if(cs)cs.forEach(r=>{chinaSeasonality[r.product_group]={avg:r.avg,factors:[r.s1,r.s2,r.s3,r.s4,r.s5,r.s6,r.s7,r.s8,r.s9,r.s10,r.s11,r.s12]}});
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function $f(id){document.getElementById(id).click()}
+function parseNum(v){if(v===''||v==='-'||v==null)return 0;const n=parseFloat(v);return isNaN(n)?0:n}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[d.getMonth()]+' '+d.getFullYear()}
+function monthDiff(a,b){return(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())}
+function addMonths(d,n){const r=new Date(d);r.setMonth(r.getMonth()+n);return r}
+function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000)}
+async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i+=batchSize){const chunk=rows.slice(i,i+batchSize);const{error}=await sb.from(table).upsert(chunk,{onConflict:undefined});if(error)throw error}}
+
+function updateStatus(){
+  const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
+  setDot('dotMaster',hm);setDot('dotCscart',hc);setDot('dotExact',he);setDot('dotSales',hs);setDot('dotChina',hch);
+  document.getElementById('lblMaster').textContent=hm?`Master: ${Object.keys(masterItems).length}`:'Master: not loaded';
+  document.getElementById('lblCscart').textContent=hc?`Cscart: ${Object.keys(cscartData).length}`:'Cscart: not loaded';
+  document.getElementById('lblExact').textContent=he?`Exact: ${Object.keys(exactStock).length}`:'Exact: not loaded';
+  document.getElementById('lblSales').textContent=hs?`Sales: ${salesPeriods.length} mo`:'Sales: 0 months';
+  document.getElementById('lblChina').textContent=hch?`China: ${Object.keys(chinaProducts).length}`:'China: not loaded';
+  ['step1','step2','step3','step4'].forEach((id,i)=>document.getElementById(id).classList.toggle('done',[hm,hc,he,hs][i]));
+}
+function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab()}
+
+// ═══════════════════════════════════════════════
+// 1. MASTER
+// ═══════════════════════════════════════════════
+async function loadMaster(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnMaster');btn.classList.add('loading');btn.textContent='Uploading...';
+  const r=new FileReader();r.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+      const all=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let hi=-1;for(let i=0;i<25;i++){const row=all[i].map(c=>String(c).trim().toLowerCase());if(row.includes('code')&&row.includes('description')){hi=i;break}}
+      if(hi<0){alert('Header not found');return}
+      const hdr=all[hi].map(c=>String(c).trim().toLowerCase());
+      const ci=hdr.indexOf('code'),cS=hdr.findIndex(h=>h.includes('main supplier')||h==='supplier'),cD=hdr.indexOf('description');
+      const cP=hdr.findIndex(h=>h.includes('sales price')),cG=hdr.findIndex(h=>h.includes('item group')),cB=hdr.findIndex(h=>h.includes('business unit'));
+      const rows=[];masterItems={};
+      for(let i=hi+1;i<all.length;i++){const row=all[i];const code=String(row[ci]||'').trim();if(!code)continue;
+        const item={code,supplier:cS>=0?String(row[cS]||'').trim():'',description:cD>=0?String(row[cD]||'').trim():'',price:cP>=0?parseNum(row[cP]):0,item_group:cG>=0?String(row[cG]||'').trim():'',business_unit:cB>=0?String(row[cB]||'').trim():''};
+        rows.push(item);masterItems[code]={supplier:item.supplier,description:item.description,price:item.price,group:item.item_group,bu:item.business_unit};}
+      await sb.from('master_items').delete().neq('code','');
+      await batchUpsert('master_items',rows);
+      toast(`Master: ${rows.length} products saved`);updateStatus();rebuildMerged();
+    }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='LogItems (.xlsx)'}
+  };r.readAsArrayBuffer(f);input.value='';
+}
+
+// ═══════════════════════════════════════════════
+// 2. CSCART
+// ═══════════════════════════════════════════════
+async function loadCscart(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnCscart');btn.classList.add('loading');btn.textContent='Uploading...';
+  const r=new FileReader();r.onload=async function(e){
+    try{
+      const text=new TextDecoder().decode(new Uint8Array(e.target.result));
+      const delim=text.split('\n')[0].includes(';')?';':',';
+      const parsed=Papa.parse(text,{header:true,delimiter:delim,skipEmptyLines:true});
+      const rows=[];cscartData={};
+      parsed.data.forEach(row=>{const code=String(row['Product code']||'').trim();if(!code)return;
+        const stock=parseNum(row['Showroom (Warehouse)']),status=({'A':'A','H':'H','D':'D'})[String(row['Status']||'').trim().toUpperCase()]||'A';
+        rows.push({code,stock,status,updated_at:new Date().toISOString()});cscartData[code]={stock,status};});
+      await sb.from('cscart_stock').delete().neq('code','');
+      await batchUpsert('cscart_stock',rows);
+      toast(`Cscart: ${rows.length} items saved`);updateStatus();rebuildMerged();
+    }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Cscart CSV'}
+  };r.readAsArrayBuffer(f);input.value='';
+}
+
+// ═══════════════════════════════════════════════
+// 3. EXACT STOCK
+// ═══════════════════════════════════════════════
+async function loadExactStock(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnExact');btn.classList.add('loading');btn.textContent='Uploading...';
+  const r=new FileReader();r.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+      const all=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      let hi=-1;for(let i=0;i<25;i++){if(all[i]&&all[i].some(c=>String(c).trim().toLowerCase()==='item code')){hi=i;break}}
+      if(hi<0){alert('"Item code" not found');return}
+      const hdr=all[hi].map(c=>String(c).trim().toLowerCase());
+      const ci=hdr.indexOf('item code'),cis=hdr.indexOf('in stock'),cpo=hdr.indexOf('planned out');
+      if(ci<0||cis<0){alert('Missing columns');return}
+      const rows=[];exactStock={};
+      for(let i=hi+1;i<all.length;i++){const row=all[i];const code=String(row[ci]||'').trim();
+        if(!code||code.toLowerCase()==='carried forward')continue;
+        const stock=parseNum(row[cis])-(cpo>=0?parseNum(row[cpo]):0);
+        rows.push({code,stock,updated_at:new Date().toISOString()});exactStock[code]=stock;}
+      await sb.from('exact_stock').delete().neq('code','');
+      await batchUpsert('exact_stock',rows);
+      toast(`Exact: ${rows.length} items saved`);updateStatus();rebuildMerged();
+    }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Exact Stock (.xlsx)'}
+  };r.readAsArrayBuffer(f);input.value='';
+}
+
+// ═══════════════════════════════════════════════
+// MERGE
+// ═══════════════════════════════════════════════
+function getAvg3Mo(code){const p=salesPeriods;if(!p.length)return 0;const rec=p.slice(-3);let t=0,c=0;rec.forEach(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);if(it&&it.quantity>0){t+=it.quantity;c++}});return c>0?Math.round(t/c*10)/10:0}
+function rebuildMerged(){
+  const allCodes=new Set([...Object.keys(masterItems),...Object.keys(cscartData),...Object.keys(exactStock)]);
+  mergedData=[];allCodes.forEach(code=>{const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
+    let status='?';if(cs)status=cs.status;else if(ex!==undefined)status='E';
+    const stock=cs?cs.stock:null,exactVal=ex!==undefined?ex:null,avg=getAvg3Mo(code),sfc=stock!==null?stock:(exactVal!==null?exactVal:0),ml=avg>0?Math.round(sfc/avg*10)/10:-1;
+    mergedData.push({...m,status,code,stock,exact:exactVal,avg,monthsLeft:ml});});
+  document.getElementById('stockEmpty').style.display='none';document.getElementById('stockDash').style.display='block';
+  populateFilters();renderStockTable();
+}
+function getUrgency(r){if(r.avg<=0)return'nosale';const s=r.stock!==null?r.stock:(r.exact!==null?r.exact:null);if(s!==null&&s<=0)return'critical';if(r.monthsLeft<=0)return'critical';if(r.monthsLeft<1)return'warning';if(r.monthsLeft<2)return'low';return'ok'}
+
+// ═══════════════════════════════════════════════
+// STOCK TABLE
+// ═══════════════════════════════════════════════
+function populateFilters(){const sel=document.getElementById('filterSupplier');const sups=[...new Set(mergedData.map(r=>r.supplier))].filter(Boolean).sort();sel.innerHTML='<option value="">All ('+sups.length+')</option>';sups.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)})}
+function getActiveSt(){return[...document.querySelectorAll('.status-btn.active')].map(b=>b.dataset.st)}
+function toggleSt(b){b.classList.toggle('active');renderStockTable()}
+function clearFilters(){document.getElementById('filterSupplier').value='';document.getElementById('filterSearch').value='';document.getElementById('filterUrgency').value='';document.querySelectorAll('.status-btn').forEach(b=>b.classList.toggle('active',b.dataset.st==='A'));renderStockTable()}
+function renderStockTable(){
+  const supplier=document.getElementById('filterSupplier').value,search=document.getElementById('filterSearch').value.toLowerCase(),urgency=document.getElementById('filterUrgency').value,sts=getActiveSt();
+  let filtered=mergedData.filter(r=>{if(sts.length&&!sts.includes(r.status))return false;if(supplier&&r.supplier!==supplier)return false;if(search&&!r.code.toLowerCase().includes(search)&&!(r.description||'').toLowerCase().includes(search))return false;if(urgency&&getUrgency(r)!==urgency)return false;return true});
+  filtered.sort((a,b)=>{let va,vb;switch(sortCol){case'status':va=a.status;vb=b.status;break;case'code':va=a.code;vb=b.code;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'description':va=a.description;vb=b.description;break;case'stock':va=a.stock??-9999;vb=b.stock??-9999;break;case'exact':va=a.exact??-9999;vb=b.exact??-9999;break;case'avg':va=a.avg;vb=b.avg;break;case'price':va=a.price||0;vb=b.price||0;break;case'group':va=a.group||'';vb=b.group||'';break;default:va=a.monthsLeft;vb=b.monthsLeft}if(sortCol==='last'){const ua=getUrgency(a),ub=getUrgency(b);if(ua==='nosale'&&ub!=='nosale')return 1;if(ub==='nosale'&&ua!=='nosale')return-1}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return sortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  const act=mergedData.filter(r=>r.status==='A'),crit=act.filter(r=>getUrgency(r)==='critical').length,warn=act.filter(r=>getUrgency(r)==='warning').length,low=act.filter(r=>getUrgency(r)==='low').length,ok=act.filter(r=>getUrgency(r)==='ok').length;
+  document.getElementById('stockCards').innerHTML=`<div class="card"><div class="card-label">Active</div><div class="card-value">${act.length}</div></div><div class="card"><div class="card-label">Out of Stock</div><div class="card-value red">${crit}</div></div><div class="card"><div class="card-label">Critical &lt;1 mo</div><div class="card-value orange">${warn}</div></div><div class="card"><div class="card-label">Low &lt;2 mo</div><div class="card-value cyan">${low}</div></div><div class="card"><div class="card-label">OK 2+ mo</div><div class="card-value green">${ok}</div></div>`;
+  const badge=document.getElementById('alertBadge');const ac=crit+warn;badge.textContent=ac;badge.style.display=ac>0?'inline':'none';
+  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td>${dH}</td><td>${r.avg||'—'}</td><td>${ml}</td><td style="text-align:right">${r.price?'€'+r.price.toFixed(2):'—'}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td></tr>`}).join('');
+  document.getElementById('stockCount').textContent=`Showing ${filtered.length} of ${mergedData.length}`;
+}
+function doSort(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true}renderStockTable()}
+
+// ═══════════════════════════════════════════════
+// SALES
+// ═══════════════════════════════════════════════
+async function loadSalesCSV(input){
+  const files=input.files;if(!files.length)return;
+  const btn=document.getElementById('btnSales');btn.classList.add('loading');btn.textContent='Uploading...';
+  try{
+    for(const file of files){
+      const result=await new Promise(res=>Papa.parse(file,{header:true,skipEmptyLines:true,complete:res}));
+      const rows=result.data.filter(r=>r.item_code&&r.item_code.trim());
+      if(!rows.length)continue;
+      const period=(rows[0].period||file.name.replace('sales_','').replace('.csv','')).trim();
+      // Delete existing period data
+      await sb.from('sales_monthly').delete().eq('period',period);
+      // Insert new
+      const dbRows=rows.map(r=>({period,item_code:String(r.item_code).trim(),description:r.description||'',quantity:parseFloat(r.quantity)||0,sales_value:parseFloat(r.sales_value)||0,sales_amount:parseFloat(r.sales_amount)||0}));
+      await batchUpsert('sales_monthly',dbRows);
+      // Update local state
+      salesHistory[period]=dbRows.map(r=>({item_code:r.item_code,description:r.description,quantity:r.quantity,sales_value:r.sales_value,sales_amount:r.sales_amount}));
+    }
+    salesPeriods=Object.keys(salesHistory).sort();
+    toast(`Sales: ${files.length} file(s) saved`);updateStatus();if(mergedData.length)rebuildMerged();if(document.getElementById('tab-sales').classList.contains('active'))initSalesDash();
+  }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Load Monthly CSV'}
+  input.value='';
+}
+async function removePeriod(p){
+  if(!confirm('Remove '+p+'?'))return;
+  await sb.from('sales_monthly').delete().eq('period',p);
+  delete salesHistory[p];salesPeriods=Object.keys(salesHistory).sort();
+  toast(`Removed ${p}`);updateStatus();initSalesDash();if(mergedData.length)rebuildMerged();
+}
+function initSalesDash(){
+  if(!salesPeriods.length){document.getElementById('salesEmpty').style.display='block';document.getElementById('salesDash').style.display='none';return}
+  document.getElementById('salesEmpty').style.display='none';document.getElementById('salesDash').style.display='block';
+  document.getElementById('periodTags').innerHTML=salesPeriods.map(p=>`<span class="period-tag">${p}<span class="del" onclick="removePeriod('${p}')">×</span></span>`).join('');
+  const allSkus={};salesPeriods.forEach(p=>{(salesHistory[p]||[]).forEach(r=>{if(!allSkus[r.item_code])allSkus[r.item_code]={item_code:r.item_code,description:r.description};if(!allSkus[r.item_code].description&&r.description)allSkus[r.item_code].description=r.description;allSkus[r.item_code]['q_'+p]=r.quantity;allSkus[r.item_code]['s_'+p]=r.sales_amount})});
+  window._sm=Object.values(allSkus);window._sp=salesPeriods;renderSalesTable();renderTopChart();
+}
+function renderSalesTable(){const P=window._sp||[];let data=[...(window._sm||[])];const search=(document.getElementById('salesSearch').value||'').toLowerCase(),sort=document.getElementById('salesSort').value;if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));const lat=P[P.length-1],prev=P.length>1?P[P.length-2]:null;data=data.map(r=>{r._lq=r['q_'+lat]||0;r._pq=prev?(r['q_'+prev]||0):0;r._g=prev&&r._pq>0?((r._lq-r._pq)/r._pq*100):0;return r});if(sort==='latest_desc')data.sort((a,b)=>b._lq-a._lq);else if(sort==='latest_asc')data.sort((a,b)=>a._lq-b._lq);else if(sort==='growth')data.sort((a,b)=>b._g-a._g);else data.sort((a,b)=>a._g-b._g);
+  document.getElementById('salesHead').innerHTML='<th>Code</th><th style="min-width:180px">Description</th>'+P.map(p=>`<th>${p}</th>`).join('')+'<th>3mo Avg</th>'+(prev?'<th>Change</th>':'');
+  document.getElementById('salesBody').innerHTML=data.slice(0,200).map(r=>{const g=r._g,gh=prev?`<td style="color:${g>0?'var(--green)':g<0?'var(--red)':'var(--text3)'};font-weight:500">${g>0?'+':''}${g.toFixed(0)}%</td>`:'';const rec=P.slice(-3);let s=0,c=0;rec.forEach(p=>{const q=r['q_'+p]||0;if(q>0){s+=q;c++}});const a3=c>0?Math.round(s/c*10)/10:0;return`<tr class="clickable-row" onclick="showTrend('${r.item_code}','${esc(r.description||'')}')"><td>${r.item_code}</td><td style="font-family:var(--font)">${esc(r.description||'')}</td>${P.map(p=>`<td>${r['q_'+p]||0}</td>`).join('')}<td style="color:var(--cyan);font-weight:500">${a3}</td>${gh}</tr>`}).join('')}
+function renderTopChart(){const P=window._sp||[];if(!P.length)return;const lat=P[P.length-1],d=(window._sm||[]).map(r=>({l:r.item_code,q:r['q_'+lat]||0})).filter(r=>r.q>0).sort((a,b)=>b.q-a.q).slice(0,20);if(topCI)topCI.destroy();topCI=new Chart(document.getElementById('topChart'),{type:'bar',data:{labels:d.map(r=>r.l),datasets:[{data:d.map(r=>r.q),backgroundColor:'rgba(59,130,246,.7)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{display:false},ticks:{color:'#c8d0dc',font:{family:'IBM Plex Mono',size:10}}}}}})}
+function showTrend(code,desc){const P=window._sp||[];const item=(window._sm||[]).find(r=>r.item_code===code);if(!item)return;document.getElementById('trendTitle').textContent=`${code} — ${desc}`;if(trendCI)trendCI.destroy();trendCI=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:P,datasets:[{data:P.map(p=>item['q_'+p]||0),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.15)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#3b82f6'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}}}}});document.querySelectorAll('.clickable-row').forEach(r=>{r.classList.toggle('highlight-row',r.cells[0].textContent===code)})}
+
+// ═══════════════════════════════════════════════
+// SUPPLIERS
+// ═══════════════════════════════════════════════
+function renderSuppliers(){if(!mergedData.length)return;document.getElementById('suppliersEmpty').style.display='none';const sort=document.getElementById('supplierSort').value,act=mergedData.filter(r=>r.status==='A'),by={};act.forEach(r=>{if(!r.supplier)return;if(!by[r.supplier])by[r.supplier]={name:r.supplier,total:0,critical:0,warning:0,ok:0};by[r.supplier].total++;const u=getUrgency(r);if(u==='critical')by[r.supplier].critical++;else if(u==='warning')by[r.supplier].warning++;else by[r.supplier].ok++});let list=Object.values(by);if(sort==='critical')list.sort((a,b)=>(b.critical+b.warning)-(a.critical+a.warning));else if(sort==='total')list.sort((a,b)=>b.total-a.total);else list.sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('supplierCards').innerHTML=list.map(s=>{const pr=s.total?(s.critical/s.total*100):0,po=s.total?(s.warning/s.total*100):0,pg=100-pr-po;return`<div class="supplier-card" onclick="jumpToSupplier('${s.name.replace(/'/g,"\\'")}')"><h4 title="${esc(s.name)}">${esc(s.name)}</h4><div class="supplier-meta"><div class="stat"><span class="stat-val">${s.total}</span>SKUs</div><div class="stat"><span class="stat-val red">${s.critical}</span>Out</div><div class="stat"><span class="stat-val orange">${s.warning}</span>Crit</div><div class="stat"><span class="stat-val" style="color:var(--green)">${s.ok}</span>OK</div></div><div class="bar"><div class="bar-seg bar-red" style="width:${pr}%"></div><div class="bar-seg bar-orange" style="width:${po}%"></div><div class="bar-seg bar-green" style="width:${pg}%"></div></div></div>`}).join('')}
+function jumpToSupplier(n){switchTab('stock');document.getElementById('filterSupplier').value=n;document.getElementById('filterUrgency').value='';renderStockTable()}
+
+// ═══════════════════════════════════════════════
+// CHINA ORDER PLANNER
+// ═══════════════════════════════════════════════
+async function loadForecast(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnForecast');btn.classList.add('loading');btn.textContent='Uploading...';
+  const r=new FileReader();r.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      // General tab → China products
+      const wsG=wb.Sheets['General'];
+      if(wsG){const rows=XLSX.utils.sheet_to_json(wsG,{header:1,defval:''});const hdr=rows[0].map(c=>String(c).trim().toLowerCase());
+        const cC=hdr.indexOf('code'),cCh=hdr.findIndex(h=>h==='china'),cL=hdr.findIndex(h=>h.includes('lead time')),cGr=hdr.findIndex(h=>h.includes('item group'));
+        const dbRows=[];chinaProducts={};
+        for(let i=1;i<rows.length;i++){const row=rows[i];const code=String(row[cC]||'').trim(),china=String(row[cCh]||'').trim().toLowerCase();if(!code||!(china==='yes'||china==='y'))continue;
+          const lt=cL>=0?parseNum(row[cL])||120:120,grp=cGr>=0?String(row[cGr]||'').trim():'';
+          chinaProducts[code]={leadTime:lt,group:grp};dbRows.push({code,lead_time:lt,item_group:grp});}
+        await sb.from('china_products').delete().neq('code','');
+        await batchUpsert('china_products',dbRows);}
+      // DSalesData → seasonality
+      const wsD=wb.Sheets['DSalesData'];
+      if(wsD){const drows=XLSX.utils.sheet_to_json(wsD,{header:1,defval:''});
+        const dbRows=[];chinaSeasonality={};
+        for(let i=1;i<drows.length;i++){const row=drows[i];const grp=String(row[0]||'').trim();if(!grp)continue;
+          const avg=parseNum(row[14]),factors=[];for(let m=15;m<=26;m++)factors.push(parseNum(row[m]));
+          chinaSeasonality[grp]={avg,factors};
+          dbRows.push({product_group:grp,avg,s1:factors[0],s2:factors[1],s3:factors[2],s4:factors[3],s5:factors[4],s6:factors[5],s7:factors[6],s8:factors[7],s9:factors[8],s10:factors[9],s11:factors[10],s12:factors[11]});}
+        await sb.from('china_seasonality').delete().neq('product_group','');
+        await batchUpsert('china_seasonality',dbRows);}
+      toast(`China: ${Object.keys(chinaProducts).length} products, ${Object.keys(chinaSeasonality).length} groups`);updateStatus();renderChinaTab();
+    }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Load Forecast (.xlsx)'}
+  };r.readAsArrayBuffer(f);input.value='';
+}
+
+async function clearChinaData(){if(!confirm('Clear China product list?'))return;
+  await sb.from('china_products').delete().neq('code','');
+  await sb.from('china_seasonality').delete().neq('product_group','');
+  chinaProducts={};chinaSeasonality={};draftOrder={};toast('China data cleared');updateStatus();renderChinaTab();}
+
+function getSeasonFactor(group,mi){const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1}
+function projectStock(code,curStock,avg,group,orderQty,arrDate){
+  const now=new Date(),months=[];let stock=curStock;
+  for(let i=0;i<15;i++){const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
+    let recv=0;if(arrDate&&orderQty>0&&d.getMonth()===arrDate.getMonth()&&d.getFullYear()===arrDate.getFullYear())recv=orderQty;
+    stock=stock-sales+recv;months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
+
+function getStockoutInfo(code){
+  const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
+  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0),avg=getAvg3Mo(code),group=cp.group||m.group||'',lt=cp.leadTime||120;
+  const proj=projectStock(code,curStock,avg,group,0,null);
+  let soIdx=-1;for(let i=0;i<proj.length;i++){if(proj[i].stock<=0){soIdx=i;break}}
+  const soDate=soIdx>=0?proj[soIdx].date:null,obDate=soDate?new Date(soDate.getTime()-lt*86400000):null;
+  const draft=draftOrder[code];let projO=proj;
+  if(draft&&draft.qty>0){const ai=document.getElementById('orderArrival');const arr=ai&&ai.value?new Date(ai.value):addMonths(new Date(),4);projO=projectStock(code,curStock,avg,group,draft.qty,arr)}
+  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,leadTime:lt,projection:proj,projWithOrder:projO,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(ex!==undefined?'E':'?')}}
+
+function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
+
+function renderChinaTable(){
+  const codes=Object.keys(chinaProducts),search=(document.getElementById('chinaSearch').value||'').toLowerCase(),filter=document.getElementById('chinaFilter').value,now=new Date();
+  let items=codes.map(c=>getStockoutInfo(c)).filter(Boolean);
+  if(search)items=items.filter(r=>r.code.toLowerCase().includes(search)||r.description.toLowerCase().includes(search));
+  if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
+  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
+  document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div><div class="card"><div class="card-label">In Draft Order</div><div class="card-value purple">${Object.keys(draftOrder).length}</div></div>`;
+  const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
+  document.getElementById('chinaBody').innerHTML=items.map(r=>{const isLate=r.orderByDate&&r.orderByDate<now,isSoon=r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1),cls=isLate?'urgent-critical':isSoon?'urgent-warning':'',inO=!!draftOrder[r.code];
+    let soH;if(r.avg<=0)soH='<span style="color:var(--text3)">No data</span>';else if(!r.stockoutDate)soH='<span style="color:var(--green)">15+ mo</span>';else soH=`<span style="color:${isLate?'var(--red)':isSoon?'var(--orange)':'var(--text)'};font-weight:${isLate||isSoon?'600':'400'}">${fmtDate(r.stockoutDate)}</span>`;
+    let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
+    const useP=inO?r.projWithOrder:r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
+    const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
+    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.currentStock}</td><td>${r.avg||'—'}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td></tr>`}).join('');
+  renderOrderPanel();}
+function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
+
+function toggleOrder(code){if(draftOrder[code])delete draftOrder[code];else draftOrder[code]={qty:0,price:0};renderChinaTable()}
+function updateOrderQty(code,qty){draftOrder[code].qty=parseNum(qty);renderChinaTable()}
+function updateOrderPrice(code,price){draftOrder[code].price=parseNum(price);renderOrderPanel()}
+function renderOrderPanel(){
+  const codes=Object.keys(draftOrder);document.getElementById('orderEmpty').style.display=codes.length?'none':'block';document.getElementById('orderTotal').style.display=codes.length?'block':'none';document.getElementById('orderItemCount').textContent=codes.length+' items';
+  document.getElementById('orderItems').innerHTML=codes.map(code=>{const d=draftOrder[code],m=masterItems[code]||{};return`<div class="order-item"><div class="order-item-top"><strong>${code}</strong><span class="remove" onclick="toggleOrder('${code}')">×</span></div><div class="order-item-desc">${esc(m.description||'')}</div><div class="order-fields"><div><label>Quantity</label><input type="number" value="${d.qty}" min="0" onchange="updateOrderQty('${code}',this.value)" style="width:100%"></div><div><label>Unit price (USD)</label><input type="number" value="${d.price}" min="0" step="0.01" onchange="updateOrderPrice('${code}',this.value)" style="width:100%"></div></div></div>`}).join('');
+  let tU=0,tC=0;codes.forEach(c=>{tU+=draftOrder[c].qty;tC+=draftOrder[c].qty*draftOrder[c].price});
+  document.getElementById('otItems').textContent=codes.length;document.getElementById('otUnits').textContent=tU.toLocaleString();document.getElementById('otCost').textContent='$'+tC.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
+</script>
+</body>
+</html>
