@@ -168,7 +168,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="table-wrap"><div class="table-scroll"><table><thead><tr>
             <th onclick="doSort('status')">Status</th><th onclick="doSort('code')">Code</th><th onclick="doSort('supplier')">Supplier</th><th onclick="doSort('description')" style="min-width:200px">Description</th>
             <th onclick="doSort('stock')">Stock (CS)</th><th onclick="doSort('exact')">Stock (Exact)</th><th>Diff</th><th onclick="doSort('avg')">Avg/mo</th><th onclick="doSort('last')">Months Left</th>
-            <th onclick="doSort('po')">PO</th><th onclick="doSort('podate')">Last PO Date</th><th onclick="doSort('group')">Group</th>
+            <th onclick="doSort('po')">PO</th><th onclick="doSort('podate')">Last PO Date</th><th onclick="doSort('group')">Group</th><th title="China">CN</th>
           </tr></thead><tbody id="stockBody"></tbody></table></div></div>
           <div style="padding:8px 0;font-size:11px;color:var(--text3)" id="stockCount"></div>
         </div>
@@ -201,9 +201,9 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="cards" id="chinaCards"></div>
           <div class="china-layout">
             <div class="left">
-              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
+              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
-                <th style="width:30px"></th><th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th>
+                <th style="width:30px"></th><th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
             </div>
             <div class="right">
@@ -334,6 +334,24 @@ async function savePo(code,poNum){
     poData[code]={po:poNum,date:today};
   }
   renderStockTable();
+}
+
+async function toggleChina(code){
+  if(chinaProducts[code]){
+    await sb.from('china_products').delete().eq('code',code);
+    delete chinaProducts[code];
+    toast(`${code} removed from China`);
+  }else{
+    const m=masterItems[code]||{};
+    const group=m.group||'';
+    const lt=120;
+    await sb.from('china_products').upsert({code,lead_time:lt,item_group:group});
+    chinaProducts[code]={leadTime:lt,group};
+    toast(`${code} added to China (120d lead time)`);
+  }
+  updateStatus();
+  renderStockTable();
+  if(document.getElementById('tab-china').classList.contains('active'))renderChinaTab();
 }
 
 // ═══════════════════════════════════════════════
@@ -473,7 +491,7 @@ function renderStockTable(){
   const totalShown=filtered.length;
   document.getElementById('stockCards').innerHTML=`<div class="card"><div class="card-label">Active</div><div class="card-value">${activeFiltered.length}</div></div><div class="card"><div class="card-label">Out of Stock</div><div class="card-value red">${crit}</div></div><div class="card"><div class="card-label">Critical &lt;1 mo</div><div class="card-value orange">${warn}</div></div><div class="card"><div class="card-label">Low &lt;2 mo</div><div class="card-value cyan">${low}</div></div><div class="card"><div class="card-label">OK 2+ mo</div><div class="card-value green">${ok}</div></div>`;
   const badge=document.getElementById('alertBadge');const globalAct=mergedData.filter(r=>r.status==='A');const gac=globalAct.filter(r=>getUrgency(r)==='critical').length+globalAct.filter(r=>getUrgency(r)==='warning').length;badge.textContent=gac;badge.style.display=gac>0?'inline':'none';
-  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td>${dH}</td><td>${r.avg||'—'}</td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td></tr>`}).join('');
+  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td>${dH}</td><td>${r.avg||'—'}</td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
   document.getElementById('stockCount').textContent=`Showing ${filtered.length} of ${mergedData.length}`;
 }
 function doSort(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true}renderStockTable()}
@@ -599,11 +617,22 @@ function getStockoutInfo(code){
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
 
 function renderChinaTable(){
-  const codes=Object.keys(chinaProducts),search=(document.getElementById('chinaSearch').value||'').toLowerCase(),filter=document.getElementById('chinaFilter').value,now=new Date();
+  const codes=Object.keys(chinaProducts),search=(document.getElementById('chinaSearch').value||'').toLowerCase(),filter=document.getElementById('chinaFilter').value,supplierF=document.getElementById('chinaSupplier').value,groupF=document.getElementById('chinaGroup').value,now=new Date();
   let items=codes.map(c=>getStockoutInfo(c)).filter(Boolean);
+
+  // Populate filter dropdowns based on current China products
+  const supSel=document.getElementById('chinaSupplier'),grpSel=document.getElementById('chinaGroup');
+  const sups=[...new Set(items.map(r=>r.supplier))].filter(Boolean).sort();
+  const grps=[...new Set(items.map(r=>r.group))].filter(Boolean).sort();
+  const curSup=supSel.value,curGrp=grpSel.value;
+  supSel.innerHTML='<option value="">All ('+sups.length+')</option>'+sups.map(s=>`<option value="${esc(s)}" ${s===curSup?'selected':''}>${esc(s)}</option>`).join('');
+  grpSel.innerHTML='<option value="">All ('+grps.length+')</option>'+grps.map(g=>`<option value="${esc(g)}" ${g===curGrp?'selected':''}>${esc(g)}</option>`).join('');
+
   if(search)items=items.filter(r=>r.code.toLowerCase().includes(search)||r.description.toLowerCase().includes(search));
+  if(supplierF)items=items.filter(r=>r.supplier===supplierF);
+  if(groupF)items=items.filter(r=>r.group===groupF);
   if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
-  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
   document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div><div class="card"><div class="card-label">In Draft Order</div><div class="card-value purple">${Object.keys(draftOrder).length}</div></div>`;
   const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
@@ -612,7 +641,7 @@ function renderChinaTable(){
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
     const useP=inO?r.projWithOrder:r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td></tr>`}).join('');
+    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')" title="Add to draft order">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
   renderOrderPanel();}
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
 
