@@ -267,26 +267,68 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
     <div class="tab-content" id="tab-simulator">
       <div class="topbar">
         <h2>Order Simulator</h2>
-        <button class="btn btn-primary" onclick="newOrder()">+ New Order</button>
-        <button class="btn" onclick="exportOrderCSV()" id="btnExportOrder" style="display:none">Export CSV</button>
+        <button class="btn btn-primary" onclick="newBoat()">+ New Boat</button>
+        <button class="btn" onclick="exportBoatCSV()" id="btnExportBoat" style="display:none">Export CSV</button>
       </div>
       <div class="content">
-        <div id="simEmpty" class="empty-state"><h3>Order Simulator</h3><p>Create a new order to plan your next China shipment.<br>See how the order will impact your 15-month stock projection before committing.</p><button class="btn btn-primary" onclick="newOrder()">+ Create First Order</button></div>
+        <div id="simEmpty" class="empty-state"><h3>Order Simulator</h3><p>Create a Boat (container) to group your purchase orders.<br>Each PO has its own supplier, currency and products. All POs in a Boat arrive together.</p><button class="btn btn-primary" onclick="newBoat()">+ Create First Boat</button></div>
         <div id="simDash" style="display:none">
-          <div class="sim-order-list" id="orderList"></div>
-          <div id="orderDetail" style="display:none">
+          <!-- Boat tabs -->
+          <div class="sim-order-list" id="boatList"></div>
+
+          <div id="boatDetail" style="display:none">
+            <!-- Boat header -->
             <div class="sim-header">
-              <div class="filter-group"><label>Order name</label><input type="text" id="orderName" onchange="saveOrderMeta()" placeholder="e.g. March 2026"></div>
-              <div class="filter-group"><label>Arrival date</label><input type="date" id="orderArrivalDate" onchange="saveOrderMeta()"></div>
-              <div class="filter-group"><label>Notes</label><input type="text" id="orderNotes" onchange="saveOrderMeta()" placeholder="optional" style="width:240px"></div>
-              <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentOrder()">Delete order</button>
+              <div class="filter-group"><label>Boat</label><input type="text" id="boatName" onchange="saveBoatMeta()" placeholder="e.g. Boat 12" style="min-width:140px"></div>
+              <div class="filter-group"><label>Arrival</label><input type="date" id="boatArrival" onchange="saveBoatMeta()"></div>
+              <div class="filter-group"><label>Notes</label><input type="text" id="boatNotes" onchange="saveBoatMeta()" placeholder="optional" style="width:200px"></div>
+              <button class="btn btn-primary" onclick="newPO()" style="margin-left:auto">+ New PO</button>
+              <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentBoat()">Delete Boat</button>
             </div>
-            <div class="sim-totals" id="simTotals"></div>
-            <div class="sim-add-product">
-              <input type="text" id="simSearch" placeholder="Search China products to add to this order..." oninput="searchProducts(this.value)" style="width:100%">
-              <div class="sim-search-results" id="simSearchResults"></div>
+
+            <!-- Boat summary -->
+            <div class="sim-totals" id="boatTotals"></div>
+
+            <!-- PO tabs -->
+            <div class="sim-order-list" id="poList" style="margin-bottom:12px"></div>
+
+            <!-- PO detail -->
+            <div id="poDetail" style="display:none">
+              <div class="sim-header" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
+                <div class="filter-group"><label>PO Name</label><input type="text" id="poName" onchange="savePOMeta()" placeholder="e.g. PO 3346" style="min-width:120px"></div>
+                <div class="filter-group"><label>Supplier</label><input type="text" id="poSupplier" onchange="savePOMeta()" placeholder="Supplier name" style="min-width:180px"></div>
+                <div class="filter-group"><label>Currency</label>
+                  <select id="poCurrency" onchange="savePOMeta()"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option></select>
+                </div>
+                <div class="filter-group"><label>Rate → EUR</label><input type="number" id="poRate" step="0.01" min="0" onchange="savePOMeta()" style="width:80px" title="1 unit of this currency = X EUR"></div>
+                <button class="btn" style="color:var(--red);border-color:var(--red);margin-left:auto" onclick="deleteCurrentPO()">Delete PO</button>
+              </div>
+
+              <!-- Product search -->
+              <div class="sim-add-product">
+                <input type="text" id="simSearch" placeholder="Search China products to add to this PO..." oninput="searchProducts(this.value)" style="width:100%">
+                <div class="sim-search-results" id="simSearchResults"></div>
+              </div>
+
+              <!-- PO items table -->
+              <div class="table-wrap" style="margin-bottom:16px"><div class="table-scroll" style="max-height:300px">
+                <table><thead><tr>
+                  <th>Code</th><th>Description</th><th>Qty</th><th id="priceHeader">Unit Price</th><th id="lineHeader">Line Total</th><th style="width:30px"></th>
+                </tr></thead><tbody id="poItemsBody"></tbody>
+                <tfoot><tr style="background:var(--bg3)">
+                  <td colspan="2" style="font-weight:600;color:#fff">PO Total</td>
+                  <td id="poTotalQty" style="font-weight:600;color:#fff">0</td>
+                  <td></td><td id="poTotalVal" style="font-weight:600;color:#fff">0</td><td></td>
+                </tr></tfoot>
+                </table>
+              </div></div>
             </div>
-            <div id="simProjections"></div>
+
+            <!-- Full projections for all products in this boat -->
+            <div style="margin-top:12px">
+              <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:12px" id="projTitle">15-Month Projections</h3>
+              <div id="simProjections"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -347,8 +389,8 @@ let salesPeriods=[];
 let chinaProducts=JSON.parse('{}'), chinaSeasonality=JSON.parse('{}');
 let poData={}; // code -> {po, date}
 let draftOrder={};
-let savedOrders={}; // id -> {name, arrival_date, notes, items: {code: {qty, price}}}
-let currentOrderId=null;
+let savedBoats={}; // id -> {id,name,arrival_date,notes,orders:{po_id:{id,name,supplier,currency,exchange_rate,notes,items:{code:{qty,price}}}}}
+let currentBoatId=null, currentPOId=null;
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -397,11 +439,18 @@ async function loadPoFromDB(){
 }
 
 async function loadOrdersFromDB(){
+  const boats=await fetchAll('china_boats');
   const orders=await fetchAll('china_orders');
   const items=await fetchAll('china_order_items');
-  savedOrders={};
-  orders.forEach(o=>{savedOrders[o.id]={id:o.id,name:o.name,arrival_date:o.arrival_date,notes:o.notes||'',items:{}}});
-  items.forEach(it=>{if(savedOrders[it.order_id])savedOrders[it.order_id].items[it.code]={qty:parseFloat(it.quantity)||0,price:parseFloat(it.unit_price)||0}});
+  savedBoats={};
+  boats.forEach(b=>{savedBoats[b.id]={id:b.id,name:b.name,arrival_date:b.arrival_date,notes:b.notes||'',orders:{}}});
+  orders.forEach(o=>{if(savedBoats[o.boat_id])savedBoats[o.boat_id].orders[o.id]={id:o.id,name:o.name,supplier:o.supplier||'',currency:o.currency||'USD',exchange_rate:parseFloat(o.exchange_rate)||1,notes:o.notes||'',items:{}}});
+  items.forEach(it=>{
+    for(const bid of Object.keys(savedBoats)){
+      const po=savedBoats[bid].orders[it.order_id];
+      if(po){po.items[it.code]={qty:parseFloat(it.quantity)||0,price:parseFloat(it.unit_price)||0};break}
+    }
+  });
 }
 async function savePo(code,poNum){
   poNum=String(poNum).trim();
@@ -737,98 +786,269 @@ function renderOrderPanel(){
 // ═══════════════════════════════════════════════
 // ORDER SIMULATOR
 // ═══════════════════════════════════════════════
+const CURR_SYM={USD:'$',EUR:'€',CNY:'¥'};
+
 function renderSimulator(){
-  const orders=Object.values(savedOrders);
-  if(!orders.length&&!currentOrderId){
+  const boats=Object.values(savedBoats);
+  if(!boats.length&&!currentBoatId){
     document.getElementById('simEmpty').style.display='block';
-    document.getElementById('simDash').style.display='none';
-    return;
+    document.getElementById('simDash').style.display='none';return;
   }
   document.getElementById('simEmpty').style.display='none';
   document.getElementById('simDash').style.display='block';
 
-  // Order tabs
-  orders.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  document.getElementById('orderList').innerHTML=orders.map(o=>`<div class="sim-order-btn ${o.id===currentOrderId?'active':''}" onclick="selectOrder('${o.id}')">${esc(o.name||'Untitled')}<span class="del-ord" onclick="event.stopPropagation();deleteOrder('${o.id}')">×</span></div>`).join('');
+  boats.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('boatList').innerHTML=boats.map(b=>`<div class="sim-order-btn ${b.id===currentBoatId?'active':''}" onclick="selectBoat('${b.id}')">${esc(b.name||'Untitled')}<span class="del-ord" onclick="event.stopPropagation();deleteBoat('${b.id}')">×</span></div>`).join('');
 
-  if(currentOrderId&&savedOrders[currentOrderId]){
-    renderOrderDetail();
-    document.getElementById('orderDetail').style.display='block';
-    document.getElementById('btnExportOrder').style.display='inline-flex';
+  if(currentBoatId&&savedBoats[currentBoatId]){
+    document.getElementById('boatDetail').style.display='block';
+    document.getElementById('btnExportBoat').style.display='inline-flex';
+    renderBoatDetail();
   }else{
-    document.getElementById('orderDetail').style.display='none';
-    document.getElementById('btnExportOrder').style.display='none';
+    document.getElementById('boatDetail').style.display='none';
+    document.getElementById('btnExportBoat').style.display='none';
   }
 }
 
-async function newOrder(){
-  const name=prompt('Order name (e.g. "March 2026 order"):');
+// ═══ BOAT CRUD ═══
+async function newBoat(){
+  const name=prompt('Boat name (e.g. "Boat 12"):');
   if(!name)return;
-  const id='ord_'+Date.now();
+  const id='boat_'+Date.now();
   const arrival=new Date();arrival.setDate(arrival.getDate()+120);
-  const arrivalStr=arrival.toISOString().split('T')[0];
-  await sb.from('china_orders').insert({id,name,arrival_date:arrivalStr,notes:''});
-  savedOrders[id]={id,name,arrival_date:arrivalStr,notes:'',items:{}};
-  currentOrderId=id;
-  toast(`Order "${name}" created`);
+  const arrStr=arrival.toISOString().split('T')[0];
+  await sb.from('china_boats').insert({id,name,arrival_date:arrStr,notes:''});
+  savedBoats[id]={id,name,arrival_date:arrStr,notes:'',orders:{}};
+  currentBoatId=id;currentPOId=null;
+  toast(`Boat "${name}" created`);renderSimulator();
+}
+function selectBoat(id){currentBoatId=id;currentPOId=null;renderSimulator()}
+async function deleteBoat(id){
+  const b=savedBoats[id];if(!b)return;
+  if(!confirm(`Delete "${b.name}" and all its POs?`))return;
+  await sb.from('china_boats').delete().eq('id',id);
+  delete savedBoats[id];
+  if(currentBoatId===id){currentBoatId=null;currentPOId=null}
+  toast('Boat deleted');renderSimulator();
+}
+async function deleteCurrentBoat(){if(currentBoatId)await deleteBoat(currentBoatId)}
+
+async function saveBoatMeta(){
+  if(!currentBoatId)return;
+  const b=savedBoats[currentBoatId];
+  b.name=document.getElementById('boatName').value.trim();
+  b.arrival_date=document.getElementById('boatArrival').value;
+  b.notes=document.getElementById('boatNotes').value.trim();
+  await sb.from('china_boats').update({name:b.name,arrival_date:b.arrival_date||null,notes:b.notes}).eq('id',currentBoatId);
   renderSimulator();
 }
 
-function selectOrder(id){currentOrderId=id;renderSimulator()}
-
-async function deleteOrder(id){
-  if(!confirm(`Delete order "${savedOrders[id].name}"?`))return;
+// ═══ PO CRUD ═══
+async function newPO(){
+  if(!currentBoatId)return;
+  const name=prompt('PO name (e.g. "PO 3346"):');
+  if(!name)return;
+  const id='po_'+Date.now();
+  await sb.from('china_orders').insert({id,boat_id:currentBoatId,name,supplier:'',currency:'USD',exchange_rate:1,notes:''});
+  savedBoats[currentBoatId].orders[id]={id,name,supplier:'',currency:'USD',exchange_rate:1,notes:'',items:{}};
+  currentPOId=id;
+  toast(`PO "${name}" created`);renderBoatDetail();
+}
+function selectPO(id){currentPOId=id;renderBoatDetail()}
+async function deletePO(id){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const po=b.orders[id];if(!po)return;
+  if(!confirm(`Delete PO "${po.name}"?`))return;
   await sb.from('china_orders').delete().eq('id',id);
-  delete savedOrders[id];
-  if(currentOrderId===id)currentOrderId=null;
-  toast('Order deleted');
-  renderSimulator();
+  delete b.orders[id];
+  if(currentPOId===id)currentPOId=null;
+  toast('PO deleted');renderBoatDetail();
+}
+async function deleteCurrentPO(){if(currentPOId)await deletePO(currentPOId)}
+
+async function savePOMeta(){
+  if(!currentBoatId||!currentPOId)return;
+  const po=savedBoats[currentBoatId].orders[currentPOId];if(!po)return;
+  po.name=document.getElementById('poName').value.trim();
+  po.supplier=document.getElementById('poSupplier').value.trim();
+  po.currency=document.getElementById('poCurrency').value;
+  po.exchange_rate=parseNum(document.getElementById('poRate').value)||1;
+  await sb.from('china_orders').update({name:po.name,supplier:po.supplier,currency:po.currency,exchange_rate:po.exchange_rate}).eq('id',currentPOId);
+  renderBoatDetail();
 }
 
-async function deleteCurrentOrder(){if(currentOrderId)await deleteOrder(currentOrderId)}
+// ═══ BOAT DETAIL ═══
+function renderBoatDetail(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  document.getElementById('boatName').value=b.name||'';
+  document.getElementById('boatArrival').value=b.arrival_date||'';
+  document.getElementById('boatNotes').value=b.notes||'';
 
-async function saveOrderMeta(){
-  if(!currentOrderId)return;
-  const name=document.getElementById('orderName').value.trim();
-  const arrival=document.getElementById('orderArrivalDate').value;
-  const notes=document.getElementById('orderNotes').value.trim();
-  savedOrders[currentOrderId].name=name;
-  savedOrders[currentOrderId].arrival_date=arrival;
-  savedOrders[currentOrderId].notes=notes;
-  await sb.from('china_orders').update({name,arrival_date:arrival||null,notes,updated_at:new Date().toISOString()}).eq('id',currentOrderId);
-  renderSimulator();
+  // PO tabs
+  const pos=Object.values(b.orders);
+  pos.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('poList').innerHTML=pos.map(p=>`<div class="sim-order-btn ${p.id===currentPOId?'active':''}" onclick="selectPO('${p.id}')">${esc(p.name||'Untitled')} <span style="font-size:10px;color:${p.id===currentPOId?'rgba(255,255,255,.7)':'var(--text3)'}">${CURR_SYM[p.currency]||'$'}</span><span class="del-ord" onclick="event.stopPropagation();deletePO('${p.id}')">×</span></div>`).join('');
+
+  // PO detail
+  if(currentPOId&&b.orders[currentPOId]){
+    document.getElementById('poDetail').style.display='block';
+    renderPODetail();
+  }else{
+    document.getElementById('poDetail').style.display='none';
+  }
+
+  // Boat totals
+  renderBoatTotals();
+
+  // Projections for ALL products across all POs
+  renderBoatProjections();
 }
 
-function renderOrderDetail(){
-  const o=savedOrders[currentOrderId];if(!o)return;
-  document.getElementById('orderName').value=o.name||'';
-  document.getElementById('orderArrivalDate').value=o.arrival_date||'';
-  document.getElementById('orderNotes').value=o.notes||'';
+function renderPODetail(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const po=b.orders[currentPOId];if(!po)return;
+  document.getElementById('poName').value=po.name||'';
+  document.getElementById('poSupplier').value=po.supplier||'';
+  document.getElementById('poCurrency').value=po.currency||'USD';
+  document.getElementById('poRate').value=po.exchange_rate||1;
+  document.getElementById('poRate').title=`1 ${po.currency} = ${po.exchange_rate} EUR`;
 
-  // Totals
-  const codes=Object.keys(o.items);
-  let totalUnits=0,totalCost=0,improved=0;
-  const arrDate=o.arrival_date?new Date(o.arrival_date):null;
-  codes.forEach(code=>{
-    const it=o.items[code];
-    totalUnits+=it.qty;totalCost+=it.qty*it.price;
-    const info=getStockoutInfoForOrder(code,it.qty,arrDate);
-    if(info&&info.improvement>0)improved++;
+  const sym=CURR_SYM[po.currency]||'$';
+  document.getElementById('priceHeader').textContent='Price ('+sym+')';
+  document.getElementById('lineHeader').textContent='Total ('+sym+')';
+
+  const codes=Object.keys(po.items);
+  let totalQty=0,totalVal=0;
+  document.getElementById('poItemsBody').innerHTML=codes.map(code=>{
+    const it=po.items[code],m=masterItems[code]||{};
+    const line=it.qty*it.price;totalQty+=it.qty;totalVal+=line;
+    return`<tr>
+      <td>${code}</td>
+      <td style="font-family:var(--font);max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(m.description)}">${esc(m.description||'')}</td>
+      <td><input type="number" value="${it.qty}" min="0" onchange="updatePOItem('${code}','qty',this.value)" style="width:70px"></td>
+      <td><input type="number" value="${it.price}" min="0" step="0.01" onchange="updatePOItem('${code}','price',this.value)" style="width:80px"></td>
+      <td>${sym}${line.toFixed(2)}</td>
+      <td><button class="sim-proj-remove" onclick="removeFromPO('${code}')">×</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('poTotalQty').textContent=totalQty;
+  document.getElementById('poTotalVal').textContent=sym+totalVal.toFixed(2);
+}
+
+function renderBoatTotals(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const pos=Object.values(b.orders);
+  let totalProducts=0,totalUnits=0,totalEUR=0;
+  const poSummaries=[];
+  pos.forEach(po=>{
+    const sym=CURR_SYM[po.currency]||'$';
+    let poUnits=0,poVal=0;
+    Object.values(po.items).forEach(it=>{poUnits+=it.qty;poVal+=it.qty*it.price});
+    const eurVal=poVal*po.exchange_rate;
+    totalProducts+=Object.keys(po.items).length;totalUnits+=poUnits;totalEUR+=eurVal;
+    if(Object.keys(po.items).length)poSummaries.push(`${esc(po.name)}: ${sym}${poVal.toFixed(0)} (€${eurVal.toFixed(0)})`);
   });
 
-  document.getElementById('simTotals').innerHTML=`
-    <div class="stat"><span class="stat-lbl">Products</span><span class="stat-val">${codes.length}</span></div>
+  document.getElementById('boatTotals').innerHTML=`
+    <div class="stat"><span class="stat-lbl">POs</span><span class="stat-val">${pos.length}</span></div>
+    <div class="stat"><span class="stat-lbl">Products</span><span class="stat-val">${totalProducts}</span></div>
     <div class="stat"><span class="stat-lbl">Total units</span><span class="stat-val">${totalUnits.toLocaleString()}</span></div>
-    <div class="stat"><span class="stat-lbl">Est. cost</span><span class="stat-val purple">$${totalCost.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    <div class="stat"><span class="stat-lbl">Products improved</span><span class="stat-val green">${improved}/${codes.length}</span></div>
-    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px">${o.arrival_date?fmtDateShort(new Date(o.arrival_date)):'—'}</span></div>`;
+    <div class="stat"><span class="stat-lbl">Total (EUR)</span><span class="stat-val purple">€${totalEUR.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
+    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px">${b.arrival_date?fmtDateShort(new Date(b.arrival_date)):'—'}</span></div>`;
+}
 
-  // Projections
-  if(codes.length===0){
-    document.getElementById('simProjections').innerHTML='<div class="sim-empty-slot">No products in this order yet. Use the search above to add China products.</div>';
+// ═══ PO ITEM CRUD ═══
+async function updatePOItem(code,field,value){
+  const po=savedBoats[currentBoatId]?.orders[currentPOId];if(!po)return;
+  po.items[code][field]=parseNum(value);
+  await sb.from('china_order_items').upsert({order_id:currentPOId,code,quantity:po.items[code].qty,unit_price:po.items[code].price});
+  renderBoatDetail();
+}
+async function removeFromPO(code){
+  const po=savedBoats[currentBoatId]?.orders[currentPOId];if(!po)return;
+  delete po.items[code];
+  await sb.from('china_order_items').delete().eq('order_id',currentPOId).eq('code',code);
+  renderBoatDetail();
+}
+async function addToPO(code){
+  const po=savedBoats[currentBoatId]?.orders[currentPOId];if(!po)return;
+  if(po.items[code]){toast(`${code} already in this PO`,'error');return}
+  po.items[code]={qty:0,price:0};
+  await sb.from('china_order_items').insert({order_id:currentPOId,code,quantity:0,unit_price:0});
+  document.getElementById('simSearch').value='';
+  document.getElementById('simSearchResults').classList.remove('show');
+  renderBoatDetail();
+}
+
+function searchProducts(query){
+  const q=query.toLowerCase().trim();
+  const results=document.getElementById('simSearchResults');
+  if(!q){results.classList.remove('show');return}
+  const po=savedBoats[currentBoatId]?.orders[currentPOId];
+  const matches=Object.keys(chinaProducts).filter(code=>{
+    if(po&&po.items[code])return false;
+    if(code.toLowerCase().includes(q))return true;
+    const m=masterItems[code]||{};
+    if((m.description||'').toLowerCase().includes(q))return true;
+    if((m.supplier||'').toLowerCase().includes(q))return true;
+    return false;
+  }).slice(0,15);
+  if(!matches.length){results.innerHTML='<div class="sim-search-item" style="color:var(--text3)">No matches in China product list</div>';results.classList.add('show');return}
+  results.innerHTML=matches.map(code=>{const m=masterItems[code]||{};return`<div class="sim-search-item" onclick="addToPO('${code}')"><div class="sku">${code}</div><div class="desc">${esc(m.description||'')} · ${esc(m.supplier||'')}</div></div>`}).join('');
+  results.classList.add('show');
+}
+document.addEventListener('click',(e)=>{const sr=document.getElementById('simSearchResults');const si=document.getElementById('simSearch');if(sr&&si&&!sr.contains(e.target)&&e.target!==si)sr.classList.remove('show')});
+
+// ═══ BOAT PROJECTIONS ═══
+function renderBoatProjections(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const arrDate=b.arrival_date?new Date(b.arrival_date):null;
+
+  // Collect ALL products across all POs in this boat, summing quantities per product
+  const allItems={};
+  Object.values(b.orders).forEach(po=>{
+    Object.keys(po.items).forEach(code=>{
+      if(!allItems[code])allItems[code]=0;
+      allItems[code]+=po.items[code].qty;
+    });
+  });
+
+  const codes=Object.keys(allItems);
+  if(!codes.length){
+    document.getElementById('simProjections').innerHTML='<div class="sim-empty-slot">Add products to POs to see projections here.</div>';
+    document.getElementById('projTitle').textContent='15-Month Projections';
     return;
   }
-  document.getElementById('simProjections').innerHTML=codes.map(code=>renderProjectionCard(code,o.items[code],arrDate)).join('');
+  document.getElementById('projTitle').textContent=`15-Month Projections (${codes.length} products across ${Object.keys(b.orders).length} POs)`;
+
+  document.getElementById('simProjections').innerHTML=codes.sort().map(code=>{
+    const totalQty=allItems[code];
+    const info=getStockoutInfoForOrder(code,totalQty,arrDate);
+    if(!info)return'';
+    const m=masterItems[code]||{};
+    const now=new Date();
+    const months=[];for(let i=0;i<15;i++)months.push(addMonths(now,i));
+    const arrMonthIdx=arrDate?months.findIndex(m=>m.getMonth()===arrDate.getMonth()&&m.getFullYear()===arrDate.getFullYear()):-1;
+    const cellCls=(stock,avgVal)=>{if(stock<0)return'neg';if(stock<avgVal)return'low';return'ok'};
+
+    const headerRow=months.map((d,i)=>{const isA=i===arrMonthIdx;return`<div class="sim-cell header" style="${isA?'color:var(--purple);font-weight:600':''}">${d.toLocaleDateString('en-US',{month:'short'}).slice(0,3)}<br>${String(d.getFullYear()).slice(2)}${isA?'<br>📦':''}</div>`}).join('');
+    const beforeRow=info.projBefore.map(m=>`<div class="sim-cell ${cellCls(m.stock,info.avg)}">${Math.round(m.stock)}</div>`).join('');
+    const afterRow=info.projAfter.map((m,i)=>`<div class="sim-cell ${cellCls(m.stock,info.avg)} ${i===arrMonthIdx?'arrived':''}" title="${m.receive?'+'+m.receive+' arriving':''}">${Math.round(m.stock)}</div>`).join('');
+
+    return`<div class="sim-projection">
+      <div class="sim-proj-header">
+        <div>
+          <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
+          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months</div>
+        </div>
+      </div>
+      <div class="sim-rows-label">WITHOUT ORDER</div>
+      <div class="sim-grid">${headerRow}</div>
+      <div class="sim-grid">${beforeRow}</div>
+      <div class="sim-rows-label" style="color:var(--purple)">WITH ORDER (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
+      <div class="sim-grid">${afterRow}</div>
+    </div>`;
+  }).join('');
 }
 
 function fmtDateShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
@@ -841,114 +1061,27 @@ function getStockoutInfoForOrder(code,orderQty,arrDate){
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
   const projBefore=projectStock(code,curStock,avg,group,0,null);
   const projAfter=orderQty>0&&arrDate?projectStock(code,curStock,avg,group,orderQty,arrDate):projBefore;
-
-  // Compute improvement: how many months go from negative to positive
   let improvement=0;
-  for(let i=0;i<projBefore.length;i++){
-    if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++;
-  }
+  for(let i=0;i<projBefore.length;i++){if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++}
   return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo};
 }
 
-function renderProjectionCard(code,item,arrDate){
-  const info=getStockoutInfoForOrder(code,item.qty,arrDate);
-  if(!info)return '';
-  const m=masterItems[code]||{};
-
-  // Build 15-month grid
-  const now=new Date();
-  const months=[];
-  for(let i=0;i<15;i++)months.push(addMonths(now,i));
-
-  const arrivalMonthIdx=arrDate?months.findIndex(m=>m.getMonth()===arrDate.getMonth()&&m.getFullYear()===arrDate.getFullYear()):-1;
-
-  const headerRow=months.map((d,i)=>{const isArr=i===arrivalMonthIdx;return`<div class="sim-cell header" style="${isArr?'color:var(--purple);font-weight:600':''}">${d.toLocaleDateString('en-US',{month:'short'}).slice(0,3)}<br>${String(d.getFullYear()).slice(2)}${isArr?'<br>📦':''}</div>`}).join('');
-
-  const cellClass=(stock,avgVal)=>{if(stock<0)return'neg';if(stock<avgVal)return'low';return'ok'};
-
-  const beforeRow=info.projBefore.map((m,i)=>`<div class="sim-cell ${cellClass(m.stock,info.avg)}" title="${m.label}: ${m.stock}">${Math.round(m.stock)}</div>`).join('');
-  const afterRow=info.projAfter.map((m,i)=>`<div class="sim-cell ${cellClass(m.stock,info.avg)} ${i===arrivalMonthIdx?'arrived':''}" title="${m.label}: ${m.stock}${m.receive?' (+'+m.receive+')':''}">${Math.round(m.stock)}</div>`).join('');
-
-  return`<div class="sim-projection">
-    <div class="sim-proj-header">
-      <div>
-        <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
-        <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Lead: ${chinaProducts[code].leadTime}d · Improves ${info.improvement} months</div>
-      </div>
-      <div class="sim-proj-inputs">
-        <div><label style="font-size:10px;color:var(--text3);display:block">Qty</label><input type="number" value="${item.qty}" min="0" onchange="updateOrderItem('${code}','qty',this.value)"></div>
-        <div><label style="font-size:10px;color:var(--text3);display:block">Price USD</label><input type="number" value="${item.price}" min="0" step="0.01" onchange="updateOrderItem('${code}','price',this.value)"></div>
-        <button class="sim-proj-remove" onclick="removeFromOrder('${code}')" title="Remove from order">×</button>
-      </div>
-    </div>
-    <div class="sim-rows-label">WITHOUT ORDER</div>
-    <div class="sim-grid">${headerRow}</div>
-    <div class="sim-grid">${beforeRow}</div>
-    <div class="sim-rows-label" style="color:var(--purple)">WITH ORDER (${item.qty} units arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
-    <div class="sim-grid">${afterRow}</div>
-  </div>`;
-}
-
-async function updateOrderItem(code,field,value){
-  const o=savedOrders[currentOrderId];if(!o)return;
-  const num=parseNum(value);
-  o.items[code][field]=num;
-  await sb.from('china_order_items').upsert({order_id:currentOrderId,code,quantity:o.items[code].qty,unit_price:o.items[code].price});
-  renderOrderDetail();
-}
-
-async function removeFromOrder(code){
-  const o=savedOrders[currentOrderId];if(!o)return;
-  delete o.items[code];
-  await sb.from('china_order_items').delete().eq('order_id',currentOrderId).eq('code',code);
-  renderOrderDetail();
-}
-
-async function addToOrder(code){
-  const o=savedOrders[currentOrderId];if(!o)return;
-  if(o.items[code]){toast(`${code} already in this order`,'error');return}
-  o.items[code]={qty:0,price:0};
-  await sb.from('china_order_items').insert({order_id:currentOrderId,code,quantity:0,unit_price:0});
-  document.getElementById('simSearch').value='';
-  document.getElementById('simSearchResults').classList.remove('show');
-  renderOrderDetail();
-}
-
-function searchProducts(query){
-  const q=query.toLowerCase().trim();
-  const results=document.getElementById('simSearchResults');
-  if(!q){results.classList.remove('show');return}
-  const o=savedOrders[currentOrderId];
-  const matches=Object.keys(chinaProducts).filter(code=>{
-    if(o&&o.items[code])return false; // skip if already in order
-    if(code.toLowerCase().includes(q))return true;
-    const m=masterItems[code]||{};
-    if((m.description||'').toLowerCase().includes(q))return true;
-    return false;
-  }).slice(0,15);
-  if(!matches.length){results.innerHTML='<div class="sim-search-item" style="color:var(--text3)">No matches</div>';results.classList.add('show');return}
-  results.innerHTML=matches.map(code=>{const m=masterItems[code]||{};return`<div class="sim-search-item" onclick="addToOrder('${code}')"><div class="sku">${code}</div><div class="desc">${esc(m.description||'')} · ${esc(m.supplier||'')}</div></div>`}).join('');
-  results.classList.add('show');
-}
-
-document.addEventListener('click',(e)=>{
-  const sr=document.getElementById('simSearchResults');
-  const si=document.getElementById('simSearch');
-  if(sr&&si&&!sr.contains(e.target)&&e.target!==si)sr.classList.remove('show');
-});
-
-function exportOrderCSV(){
-  const o=savedOrders[currentOrderId];if(!o)return;
-  const rows=[['Code','Description','Supplier','Quantity','Unit Price USD','Line Total USD']];
-  Object.keys(o.items).forEach(code=>{
-    const it=o.items[code],m=masterItems[code]||{};
-    rows.push([code,m.description||'',m.supplier||'',it.qty,it.price,(it.qty*it.price).toFixed(2)]);
+function exportBoatCSV(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const rows=[['Boat','PO','Supplier','Currency','Code','Description','Quantity','Unit Price','Line Total','Line EUR']];
+  Object.values(b.orders).forEach(po=>{
+    const sym=CURR_SYM[po.currency]||'$';
+    Object.keys(po.items).forEach(code=>{
+      const it=po.items[code],m=masterItems[code]||{};
+      const line=it.qty*it.price,eur=line*po.exchange_rate;
+      rows.push([b.name,po.name,po.supplier,po.currency,code,m.description||'',it.qty,it.price,line.toFixed(2),eur.toFixed(2)]);
+    });
   });
   const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=(o.name||'order').replace(/[^a-z0-9]/gi,'_')+'.csv';
+  a.href=url;a.download=(b.name||'boat').replace(/[^a-z0-9]/gi,'_')+'.csv';
   a.click();URL.revokeObjectURL(url);
 }
 </script>
