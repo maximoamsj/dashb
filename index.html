@@ -96,6 +96,47 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 .toast.success{border-color:var(--green);color:var(--green)}
 .toast.error{border-color:var(--red);color:var(--red)}
 @media(max-width:900px){.china-layout{grid-template-columns:1fr}}
+/* Order Simulator */
+.sim-header{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.sim-header select,.sim-header input{min-width:200px}
+.sim-order-list{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.sim-order-btn{padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:var(--font)}
+.sim-order-btn:hover{background:var(--bg4);color:var(--text)}
+.sim-order-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.sim-order-btn .del-ord{opacity:.5;cursor:pointer;padding:0 4px;font-size:14px}
+.sim-order-btn .del-ord:hover{opacity:1;color:var(--red)}
+.sim-projection{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.sim-proj-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.sim-proj-title{font-size:13px;font-weight:600;color:#fff}
+.sim-proj-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.sim-proj-inputs{display:flex;gap:8px;align-items:center}
+.sim-proj-inputs input{width:80px}
+.sim-proj-remove{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 6px}
+.sim-proj-remove:hover{color:var(--red)}
+.sim-grid{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;margin-top:10px}
+.sim-cell{padding:4px 2px;text-align:center;font-size:10px;font-family:var(--mono);border-radius:2px;position:relative}
+.sim-cell.header{color:var(--text3);font-size:9px;font-weight:500;padding-bottom:2px}
+.sim-cell.before{background:var(--bg3);color:var(--text2)}
+.sim-cell.after{background:var(--bg4)}
+.sim-cell.neg{background:rgba(239,68,68,.2);color:var(--red);font-weight:600}
+.sim-cell.low{background:rgba(245,158,11,.15);color:var(--orange)}
+.sim-cell.ok{background:rgba(34,197,94,.12);color:var(--green)}
+.sim-cell.arrived{border:1px solid var(--purple);font-weight:600}
+.sim-rows-label{font-size:10px;color:var(--text3);margin:8px 0 2px}
+.sim-empty-slot{text-align:center;padding:40px;color:var(--text2);font-size:13px;border:1px dashed var(--border);border-radius:8px}
+.sim-add-product{margin-bottom:16px;position:relative}
+.sim-search-results{position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:6px;max-height:300px;overflow-y:auto;z-index:10;margin-top:4px;display:none}
+.sim-search-results.show{display:block}
+.sim-search-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px}
+.sim-search-item:hover{background:var(--bg3)}
+.sim-search-item .sku{font-family:var(--mono);color:var(--text)}
+.sim-search-item .desc{color:var(--text2);font-size:11px;margin-top:2px}
+.sim-totals{display:flex;gap:20px;align-items:center;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px}
+.sim-totals .stat{display:flex;flex-direction:column}
+.sim-totals .stat-lbl{font-size:10px;text-transform:uppercase;color:var(--text3);letter-spacing:.5px}
+.sim-totals .stat-val{font-family:var(--mono);font-size:16px;font-weight:700;color:#fff}
+.sim-totals .stat-val.purple{color:var(--purple)}
+.sim-totals .stat-val.green{color:var(--green)}
 #lockScreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
 #lockScreen.hidden{display:none}
 .lock-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;width:340px}
@@ -126,6 +167,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Monthly Sales</div>
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
+      <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Order Simulator</div>
     </div>
     <div class="sidebar-section">
       <h4>Data Status</h4>
@@ -221,6 +263,34 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         </div>
       </div>
     </div>
+    <!-- ════════════ ORDER SIMULATOR ════════════ -->
+    <div class="tab-content" id="tab-simulator">
+      <div class="topbar">
+        <h2>Order Simulator</h2>
+        <button class="btn btn-primary" onclick="newOrder()">+ New Order</button>
+        <button class="btn" onclick="exportOrderCSV()" id="btnExportOrder" style="display:none">Export CSV</button>
+      </div>
+      <div class="content">
+        <div id="simEmpty" class="empty-state"><h3>Order Simulator</h3><p>Create a new order to plan your next China shipment.<br>See how the order will impact your 15-month stock projection before committing.</p><button class="btn btn-primary" onclick="newOrder()">+ Create First Order</button></div>
+        <div id="simDash" style="display:none">
+          <div class="sim-order-list" id="orderList"></div>
+          <div id="orderDetail" style="display:none">
+            <div class="sim-header">
+              <div class="filter-group"><label>Order name</label><input type="text" id="orderName" onchange="saveOrderMeta()" placeholder="e.g. March 2026"></div>
+              <div class="filter-group"><label>Arrival date</label><input type="date" id="orderArrivalDate" onchange="saveOrderMeta()"></div>
+              <div class="filter-group"><label>Notes</label><input type="text" id="orderNotes" onchange="saveOrderMeta()" placeholder="optional" style="width:240px"></div>
+              <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentOrder()">Delete order</button>
+            </div>
+            <div class="sim-totals" id="simTotals"></div>
+            <div class="sim-add-product">
+              <input type="text" id="simSearch" placeholder="Search China products to add to this order..." oninput="searchProducts(this.value)" style="width:100%">
+              <div class="sim-search-results" id="simSearchResults"></div>
+            </div>
+            <div id="simProjections"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -277,6 +347,8 @@ let salesPeriods=[];
 let chinaProducts=JSON.parse('{}'), chinaSeasonality=JSON.parse('{}');
 let poData={}; // code -> {po, date}
 let draftOrder={};
+let savedOrders={}; // id -> {name, arrival_date, notes, items: {code: {qty, price}}}
+let currentOrderId=null;
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -284,7 +356,7 @@ let topCI=null,trendCI=null;
 // INIT — load everything from Supabase
 // ═══════════════════════════════════════════════
 async function initApp(){
-  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB()]);
+  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB()]);
   updateStatus();
   if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
   const defArr=new Date();defArr.setDate(defArr.getDate()+120);
@@ -322,6 +394,14 @@ async function loadChinaFromDB(){
 async function loadPoFromDB(){
   const data=await fetchAll('po_annotations');
   data.forEach(r=>{poData[r.code]={po:r.po_number,date:r.po_date}});
+}
+
+async function loadOrdersFromDB(){
+  const orders=await fetchAll('china_orders');
+  const items=await fetchAll('china_order_items');
+  savedOrders={};
+  orders.forEach(o=>{savedOrders[o.id]={id:o.id,name:o.name,arrival_date:o.arrival_date,notes:o.notes||'',items:{}}});
+  items.forEach(it=>{if(savedOrders[it.order_id])savedOrders[it.order_id].items[it.code]={qty:parseFloat(it.quantity)||0,price:parseFloat(it.unit_price)||0}});
 }
 async function savePo(code,poNum){
   poNum=String(poNum).trim();
@@ -378,7 +458,7 @@ function updateStatus(){
   ['step1','step2','step3','step4'].forEach((id,i)=>document.getElementById(id).classList.toggle('done',[hm,hc,he,hs][i]));
 }
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator()}
 
 // ═══════════════════════════════════════════════
 // 1. MASTER
@@ -653,6 +733,224 @@ function renderOrderPanel(){
   document.getElementById('orderItems').innerHTML=codes.map(code=>{const d=draftOrder[code],m=masterItems[code]||{};return`<div class="order-item"><div class="order-item-top"><strong>${code}</strong><span class="remove" onclick="toggleOrder('${code}')">×</span></div><div class="order-item-desc">${esc(m.description||'')}</div><div class="order-fields"><div><label>Quantity</label><input type="number" value="${d.qty}" min="0" onchange="updateOrderQty('${code}',this.value)" style="width:100%"></div><div><label>Unit price (USD)</label><input type="number" value="${d.price}" min="0" step="0.01" onchange="updateOrderPrice('${code}',this.value)" style="width:100%"></div></div></div>`}).join('');
   let tU=0,tC=0;codes.forEach(c=>{tU+=draftOrder[c].qty;tC+=draftOrder[c].qty*draftOrder[c].price});
   document.getElementById('otItems').textContent=codes.length;document.getElementById('otUnits').textContent=tU.toLocaleString();document.getElementById('otCost').textContent='$'+tC.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
+
+// ═══════════════════════════════════════════════
+// ORDER SIMULATOR
+// ═══════════════════════════════════════════════
+function renderSimulator(){
+  const orders=Object.values(savedOrders);
+  if(!orders.length&&!currentOrderId){
+    document.getElementById('simEmpty').style.display='block';
+    document.getElementById('simDash').style.display='none';
+    return;
+  }
+  document.getElementById('simEmpty').style.display='none';
+  document.getElementById('simDash').style.display='block';
+
+  // Order tabs
+  orders.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('orderList').innerHTML=orders.map(o=>`<div class="sim-order-btn ${o.id===currentOrderId?'active':''}" onclick="selectOrder('${o.id}')">${esc(o.name||'Untitled')}<span class="del-ord" onclick="event.stopPropagation();deleteOrder('${o.id}')">×</span></div>`).join('');
+
+  if(currentOrderId&&savedOrders[currentOrderId]){
+    renderOrderDetail();
+    document.getElementById('orderDetail').style.display='block';
+    document.getElementById('btnExportOrder').style.display='inline-flex';
+  }else{
+    document.getElementById('orderDetail').style.display='none';
+    document.getElementById('btnExportOrder').style.display='none';
+  }
+}
+
+async function newOrder(){
+  const name=prompt('Order name (e.g. "March 2026 order"):');
+  if(!name)return;
+  const id='ord_'+Date.now();
+  const arrival=new Date();arrival.setDate(arrival.getDate()+120);
+  const arrivalStr=arrival.toISOString().split('T')[0];
+  await sb.from('china_orders').insert({id,name,arrival_date:arrivalStr,notes:''});
+  savedOrders[id]={id,name,arrival_date:arrivalStr,notes:'',items:{}};
+  currentOrderId=id;
+  toast(`Order "${name}" created`);
+  renderSimulator();
+}
+
+function selectOrder(id){currentOrderId=id;renderSimulator()}
+
+async function deleteOrder(id){
+  if(!confirm(`Delete order "${savedOrders[id].name}"?`))return;
+  await sb.from('china_orders').delete().eq('id',id);
+  delete savedOrders[id];
+  if(currentOrderId===id)currentOrderId=null;
+  toast('Order deleted');
+  renderSimulator();
+}
+
+async function deleteCurrentOrder(){if(currentOrderId)await deleteOrder(currentOrderId)}
+
+async function saveOrderMeta(){
+  if(!currentOrderId)return;
+  const name=document.getElementById('orderName').value.trim();
+  const arrival=document.getElementById('orderArrivalDate').value;
+  const notes=document.getElementById('orderNotes').value.trim();
+  savedOrders[currentOrderId].name=name;
+  savedOrders[currentOrderId].arrival_date=arrival;
+  savedOrders[currentOrderId].notes=notes;
+  await sb.from('china_orders').update({name,arrival_date:arrival||null,notes,updated_at:new Date().toISOString()}).eq('id',currentOrderId);
+  renderSimulator();
+}
+
+function renderOrderDetail(){
+  const o=savedOrders[currentOrderId];if(!o)return;
+  document.getElementById('orderName').value=o.name||'';
+  document.getElementById('orderArrivalDate').value=o.arrival_date||'';
+  document.getElementById('orderNotes').value=o.notes||'';
+
+  // Totals
+  const codes=Object.keys(o.items);
+  let totalUnits=0,totalCost=0,improved=0;
+  const arrDate=o.arrival_date?new Date(o.arrival_date):null;
+  codes.forEach(code=>{
+    const it=o.items[code];
+    totalUnits+=it.qty;totalCost+=it.qty*it.price;
+    const info=getStockoutInfoForOrder(code,it.qty,arrDate);
+    if(info&&info.improvement>0)improved++;
+  });
+
+  document.getElementById('simTotals').innerHTML=`
+    <div class="stat"><span class="stat-lbl">Products</span><span class="stat-val">${codes.length}</span></div>
+    <div class="stat"><span class="stat-lbl">Total units</span><span class="stat-val">${totalUnits.toLocaleString()}</span></div>
+    <div class="stat"><span class="stat-lbl">Est. cost</span><span class="stat-val purple">$${totalCost.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
+    <div class="stat"><span class="stat-lbl">Products improved</span><span class="stat-val green">${improved}/${codes.length}</span></div>
+    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px">${o.arrival_date?fmtDateShort(new Date(o.arrival_date)):'—'}</span></div>`;
+
+  // Projections
+  if(codes.length===0){
+    document.getElementById('simProjections').innerHTML='<div class="sim-empty-slot">No products in this order yet. Use the search above to add China products.</div>';
+    return;
+  }
+  document.getElementById('simProjections').innerHTML=codes.map(code=>renderProjectionCard(code,o.items[code],arrDate)).join('');
+}
+
+function fmtDateShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+
+function getStockoutInfoForOrder(code,orderQty,arrDate){
+  const cp=chinaProducts[code];if(!cp)return null;
+  const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
+  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0);
+  const chinaAvg=getChinaAvg(code);
+  const avg=chinaAvg.avg,group=cp.group||m.group||'';
+  const projBefore=projectStock(code,curStock,avg,group,0,null);
+  const projAfter=orderQty>0&&arrDate?projectStock(code,curStock,avg,group,orderQty,arrDate):projBefore;
+
+  // Compute improvement: how many months go from negative to positive
+  let improvement=0;
+  for(let i=0;i<projBefore.length;i++){
+    if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++;
+  }
+  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo};
+}
+
+function renderProjectionCard(code,item,arrDate){
+  const info=getStockoutInfoForOrder(code,item.qty,arrDate);
+  if(!info)return '';
+  const m=masterItems[code]||{};
+
+  // Build 15-month grid
+  const now=new Date();
+  const months=[];
+  for(let i=0;i<15;i++)months.push(addMonths(now,i));
+
+  const arrivalMonthIdx=arrDate?months.findIndex(m=>m.getMonth()===arrDate.getMonth()&&m.getFullYear()===arrDate.getFullYear()):-1;
+
+  const headerRow=months.map((d,i)=>{const isArr=i===arrivalMonthIdx;return`<div class="sim-cell header" style="${isArr?'color:var(--purple);font-weight:600':''}">${d.toLocaleDateString('en-US',{month:'short'}).slice(0,3)}<br>${String(d.getFullYear()).slice(2)}${isArr?'<br>📦':''}</div>`}).join('');
+
+  const cellClass=(stock,avgVal)=>{if(stock<0)return'neg';if(stock<avgVal)return'low';return'ok'};
+
+  const beforeRow=info.projBefore.map((m,i)=>`<div class="sim-cell ${cellClass(m.stock,info.avg)}" title="${m.label}: ${m.stock}">${Math.round(m.stock)}</div>`).join('');
+  const afterRow=info.projAfter.map((m,i)=>`<div class="sim-cell ${cellClass(m.stock,info.avg)} ${i===arrivalMonthIdx?'arrived':''}" title="${m.label}: ${m.stock}${m.receive?' (+'+m.receive+')':''}">${Math.round(m.stock)}</div>`).join('');
+
+  return`<div class="sim-projection">
+    <div class="sim-proj-header">
+      <div>
+        <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
+        <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Lead: ${chinaProducts[code].leadTime}d · Improves ${info.improvement} months</div>
+      </div>
+      <div class="sim-proj-inputs">
+        <div><label style="font-size:10px;color:var(--text3);display:block">Qty</label><input type="number" value="${item.qty}" min="0" onchange="updateOrderItem('${code}','qty',this.value)"></div>
+        <div><label style="font-size:10px;color:var(--text3);display:block">Price USD</label><input type="number" value="${item.price}" min="0" step="0.01" onchange="updateOrderItem('${code}','price',this.value)"></div>
+        <button class="sim-proj-remove" onclick="removeFromOrder('${code}')" title="Remove from order">×</button>
+      </div>
+    </div>
+    <div class="sim-rows-label">WITHOUT ORDER</div>
+    <div class="sim-grid">${headerRow}</div>
+    <div class="sim-grid">${beforeRow}</div>
+    <div class="sim-rows-label" style="color:var(--purple)">WITH ORDER (${item.qty} units arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
+    <div class="sim-grid">${afterRow}</div>
+  </div>`;
+}
+
+async function updateOrderItem(code,field,value){
+  const o=savedOrders[currentOrderId];if(!o)return;
+  const num=parseNum(value);
+  o.items[code][field]=num;
+  await sb.from('china_order_items').upsert({order_id:currentOrderId,code,quantity:o.items[code].qty,unit_price:o.items[code].price});
+  renderOrderDetail();
+}
+
+async function removeFromOrder(code){
+  const o=savedOrders[currentOrderId];if(!o)return;
+  delete o.items[code];
+  await sb.from('china_order_items').delete().eq('order_id',currentOrderId).eq('code',code);
+  renderOrderDetail();
+}
+
+async function addToOrder(code){
+  const o=savedOrders[currentOrderId];if(!o)return;
+  if(o.items[code]){toast(`${code} already in this order`,'error');return}
+  o.items[code]={qty:0,price:0};
+  await sb.from('china_order_items').insert({order_id:currentOrderId,code,quantity:0,unit_price:0});
+  document.getElementById('simSearch').value='';
+  document.getElementById('simSearchResults').classList.remove('show');
+  renderOrderDetail();
+}
+
+function searchProducts(query){
+  const q=query.toLowerCase().trim();
+  const results=document.getElementById('simSearchResults');
+  if(!q){results.classList.remove('show');return}
+  const o=savedOrders[currentOrderId];
+  const matches=Object.keys(chinaProducts).filter(code=>{
+    if(o&&o.items[code])return false; // skip if already in order
+    if(code.toLowerCase().includes(q))return true;
+    const m=masterItems[code]||{};
+    if((m.description||'').toLowerCase().includes(q))return true;
+    return false;
+  }).slice(0,15);
+  if(!matches.length){results.innerHTML='<div class="sim-search-item" style="color:var(--text3)">No matches</div>';results.classList.add('show');return}
+  results.innerHTML=matches.map(code=>{const m=masterItems[code]||{};return`<div class="sim-search-item" onclick="addToOrder('${code}')"><div class="sku">${code}</div><div class="desc">${esc(m.description||'')} · ${esc(m.supplier||'')}</div></div>`}).join('');
+  results.classList.add('show');
+}
+
+document.addEventListener('click',(e)=>{
+  const sr=document.getElementById('simSearchResults');
+  const si=document.getElementById('simSearch');
+  if(sr&&si&&!sr.contains(e.target)&&e.target!==si)sr.classList.remove('show');
+});
+
+function exportOrderCSV(){
+  const o=savedOrders[currentOrderId];if(!o)return;
+  const rows=[['Code','Description','Supplier','Quantity','Unit Price USD','Line Total USD']];
+  Object.keys(o.items).forEach(code=>{
+    const it=o.items[code],m=masterItems[code]||{};
+    rows.push([code,m.description||'',m.supplier||'',it.qty,it.price,(it.qty*it.price).toFixed(2)]);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=(o.name||'order').replace(/[^a-z0-9]/gi,'_')+'.csv';
+  a.click();URL.revokeObjectURL(url);
+}
 </script>
 </body>
 </html>
