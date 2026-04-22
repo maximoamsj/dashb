@@ -721,7 +721,9 @@ function projectStock(code,curStock,avg,group,orderQty,arrDate){
   const now=new Date(),months=[];let stock=curStock;
   for(let i=0;i<15;i++){const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
     let recv=0;if(arrDate&&orderQty>0&&d.getMonth()===arrDate.getMonth()&&d.getFullYear()===arrDate.getFullYear())recv=orderQty;
-    stock=stock-sales+recv;months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
+    stock=stock-sales;
+    if(recv>0)stock=Math.max(stock,0)+recv;
+    months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
 
 function getChinaAvg(code){
   const p=salesPeriods;if(!p.length)return{avg:0,activeMo:0,totalMo:0};
