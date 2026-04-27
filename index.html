@@ -174,6 +174,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="data-status"><div class="dot off" id="dotMaster"></div><span id="lblMaster">Master: loading...</span></div>
       <div class="data-status"><div class="dot off" id="dotCscart"></div><span id="lblCscart">Cscart: loading...</span></div>
       <div class="data-status"><div class="dot off" id="dotExact"></div><span id="lblExact">Exact: loading...</span></div>
+      <div class="data-status"><div class="dot off" id="dotVerschil"></div><span id="lblVerschil">Verschil: loading...</span></div>
       <div class="data-status"><div class="dot off" id="dotSales"></div><span id="lblSales">Sales: loading...</span></div>
       <div class="data-status"><div class="dot off" id="dotChina"></div><span id="lblChina">China: loading...</span></div>
     </div>
@@ -187,6 +188,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         <button class="btn" onclick="$f('fileMaster')" id="btnMaster">LogItems (.xlsx)</button><input type="file" id="fileMaster" accept=".xlsx,.xls" onchange="loadMaster(this)">
         <button class="btn btn-primary" onclick="$f('fileCscart')" id="btnCscart">Cscart CSV</button><input type="file" id="fileCscart" accept=".csv,.xlsx,.xls" onchange="loadCscart(this)">
         <button class="btn btn-primary" onclick="$f('fileExact')" id="btnExact">Exact Stock (.xlsx)</button><input type="file" id="fileExact" accept=".xlsx,.xls" onchange="loadExactStock(this)">
+        <button class="btn" onclick="$f('fileVerschil')" id="btnVerschil">Verschil (.xlsx)</button><input type="file" id="fileVerschil" accept=".xlsx,.xls" onchange="loadVerschil(this)">
       </div>
       <div class="content">
         <div id="stockEmpty"><div class="empty-state">
@@ -205,6 +207,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             <div class="filter-group"><label>Status</label><div class="status-filter"><button class="status-btn active" data-st="A" onclick="toggleSt(this)">A</button><button class="status-btn" data-st="H" onclick="toggleSt(this)">H</button><button class="status-btn" data-st="D" onclick="toggleSt(this)">D</button><button class="status-btn" data-st="E" onclick="toggleSt(this)">E</button></div></div>
             <div class="filter-group"><label>Search</label><input type="text" id="filterSearch" placeholder="Code or description..." oninput="renderStockTable()" style="width:200px"></div>
             <div class="filter-group"><label>Urgency</label><select id="filterUrgency" onchange="renderStockTable()"><option value="">All</option><option value="critical">Out of stock (≤0)</option><option value="warning">Critical (&lt;1 mo)</option><option value="low">Low (&lt;2 mo)</option><option value="ok">OK (2+ mo)</option><option value="nosale">No sales data</option></select></div>
+            <div class="filter-group"><label>China</label><select id="filterChina" onchange="renderStockTable()"><option value="">All</option><option value="yes">China only</option><option value="no">Non-China only</option></select></div>
             <span class="clear-btn" onclick="clearFilters()">Clear filters</span>
           </div>
           <div class="table-wrap"><div class="table-scroll"><table><thead><tr>
@@ -241,23 +244,12 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         <div id="chinaEmpty" class="empty-state"><h3>China Order Planner</h3><p>Upload your forecast file to identify China products and seasonality.<br>Stock and sales data come from the other tabs automatically.</p><button class="btn btn-primary" onclick="$f('fileForecast')">Load Forecast File</button></div>
         <div id="chinaDash" style="display:none">
           <div class="cards" id="chinaCards"></div>
-          <div class="china-layout">
+          <div class="china-layout" style="grid-template-columns:1fr">
             <div class="left">
               <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
-                <th style="width:30px"></th><th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
+                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
-            </div>
-            <div class="right">
-              <div class="order-header"><h3>Order Builder</h3><span style="font-size:11px;color:var(--text2)" id="orderItemCount">0 items</span></div>
-              <div id="orderItems"></div>
-              <div id="orderEmpty" style="text-align:center;padding:30px 10px;color:var(--text3);font-size:12px">Click + on products to add them to the order</div>
-              <div class="order-total" id="orderTotal" style="display:none">
-                <div class="order-total-row"><span>Items</span><span id="otItems">0</span></div>
-                <div class="order-total-row"><span>Total units</span><span id="otUnits">0</span></div>
-                <div class="order-total-row big"><span>Est. cost</span><span id="otCost">$0</span></div>
-                <div style="margin-top:12px"><label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">EXPECTED ARRIVAL</label><input type="date" id="orderArrival" onchange="renderChinaTable()" style="width:100%"></div>
-              </div>
             </div>
           </div>
         </div>
@@ -383,12 +375,11 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ═══════════════════════════════════════════════
 // STATE (in-memory, loaded from Supabase on init)
 // ═══════════════════════════════════════════════
-let masterItems={}, cscartData={}, exactStock={}, mergedData=[];
+let masterItems={}, cscartData={}, exactStock={}, verschilData={}, mergedData=[];
 let salesHistory={}; // {period: [{item_code, description, quantity, ...}]}
 let salesPeriods=[];
 let chinaProducts=JSON.parse('{}'), chinaSeasonality=JSON.parse('{}');
 let poData={}; // code -> {po, date}
-let draftOrder={};
 let savedBoats={}; // id -> {id,name,arrival_date,notes,orders:{po_id:{id,name,supplier,currency,exchange_rate,notes,items:{code:{qty,price}}}}}
 let currentBoatId=null, currentPOId=null;
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
@@ -398,7 +389,7 @@ let topCI=null,trendCI=null;
 // INIT — load everything from Supabase
 // ═══════════════════════════════════════════════
 async function initApp(){
-  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB()]);
+  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadVerschilFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB()]);
   updateStatus();
   if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
   const defArr=new Date();defArr.setDate(defArr.getDate()+120);
@@ -416,6 +407,10 @@ async function loadCscartFromDB(){
 async function loadExactFromDB(){
   const data=await fetchAll('exact_stock');
   data.forEach(r=>{exactStock[r.code]=r.stock});
+}
+async function loadVerschilFromDB(){
+  const data=await fetchAll('verschil_stock');
+  data.forEach(r=>{verschilData[r.code]=r.verschil});
 }
 async function loadSalesFromDB(){
   const data=await fetchAll('sales_monthly');
@@ -497,11 +492,12 @@ async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i
 async function fetchAll(table,pageSize=1000){let all=[],from=0;while(true){const{data,error}=await sb.from(table).select('*').range(from,from+pageSize-1);if(error)throw error;if(!data||!data.length)break;all=all.concat(data);if(data.length<pageSize)break;from+=pageSize;}return all}
 
 function updateStatus(){
-  const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
-  setDot('dotMaster',hm);setDot('dotCscart',hc);setDot('dotExact',he);setDot('dotSales',hs);setDot('dotChina',hch);
+  const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hv=Object.keys(verschilData).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
+  setDot('dotMaster',hm);setDot('dotCscart',hc);setDot('dotExact',he);setDot('dotVerschil',hv);setDot('dotSales',hs);setDot('dotChina',hch);
   document.getElementById('lblMaster').textContent=hm?`Master: ${Object.keys(masterItems).length}`:'Master: not loaded';
   document.getElementById('lblCscart').textContent=hc?`Cscart: ${Object.keys(cscartData).length}`:'Cscart: not loaded';
   document.getElementById('lblExact').textContent=he?`Exact: ${Object.keys(exactStock).length}`:'Exact: not loaded';
+  document.getElementById('lblVerschil').textContent=hv?`Verschil: ${Object.keys(verschilData).length} adj.`:'Verschil: not loaded';
   document.getElementById('lblSales').textContent=hs?`Sales: ${salesPeriods.length} mo`:'Sales: 0 months';
   document.getElementById('lblChina').textContent=hch?`China: ${Object.keys(chinaProducts).length}`:'China: not loaded';
   ['step1','step2','step3','step4'].forEach((id,i)=>document.getElementById(id).classList.toggle('done',[hm,hc,he,hs][i]));
@@ -591,15 +587,54 @@ async function loadExactStock(input){
 }
 
 // ═══════════════════════════════════════════════
+// 4. VERSCHIL (stock adjustment from Stock Locations report)
+// ═══════════════════════════════════════════════
+async function loadVerschil(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnVerschil');btn.classList.add('loading');btn.textContent='Uploading...';
+  const r=new FileReader();r.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]];
+      const all=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // Find header row containing "Code" and "In stock"
+      let hi=-1;for(let i=0;i<25;i++){const row=(all[i]||[]).map(c=>String(c).trim().toLowerCase());if(row.includes('code')&&row.includes('in stock')){hi=i;break}}
+      if(hi<0){alert('Header with "Code" and "In stock" not found');return}
+      const hdr=all[hi].map(c=>String(c).trim().toLowerCase());
+      const ci=hdr.indexOf('code'),cis=hdr.indexOf('in stock');
+      const deduped={};verschilData={};
+      for(let i=hi+1;i<all.length;i++){const row=all[i];const code=String(row[ci]||'').trim();
+        if(!code||code.toLowerCase()==='carried forward')continue;
+        const v=parseNum(row[cis]);
+        if(v===0)continue; // skip zeros
+        deduped[code]={code,verschil:v,updated_at:new Date().toISOString()};verschilData[code]=v;}
+      const rows=Object.values(deduped);
+      await sb.from('verschil_stock').delete().neq('code','');
+      if(rows.length)await batchUpsert('verschil_stock',rows);
+      toast(`Verschil: ${rows.length} adjustments saved`);updateStatus();rebuildMerged();
+    }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Verschil (.xlsx)'}
+  };r.readAsArrayBuffer(f);input.value='';
+}
+
+// ═══════════════════════════════════════════════
 // MERGE
 // ═══════════════════════════════════════════════
 function getAvg3Mo(code){const p=salesPeriods;if(!p.length)return 0;const rec=p.slice(-3);let t=0;rec.forEach(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);if(it)t+=it.quantity});return rec.length>0?Math.round(t/rec.length*10)/10:0}
+function getCorrectedExact(code){
+  const ex=exactStock[code];
+  if(ex===undefined)return undefined;
+  const v=verschilData[code];
+  return v!==undefined?ex-v:ex;
+}
+
 function rebuildMerged(){
   const allCodes=new Set([...Object.keys(masterItems),...Object.keys(cscartData),...Object.keys(exactStock)]);
-  mergedData=[];allCodes.forEach(code=>{const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
-    let status='?';if(cs)status=cs.status;else if(ex!==undefined)status='E';
-    const stock=cs?cs.stock:null,exactVal=ex!==undefined?ex:null,avg=getAvg3Mo(code),sfc=stock!==null?stock:(exactVal!==null?exactVal:0),ml=avg>0?Math.round(sfc/avg*10)/10:-1;
-    mergedData.push({...m,status,code,stock,exact:exactVal,avg,monthsLeft:ml});});
+  mergedData=[];allCodes.forEach(code=>{const m=masterItems[code]||{},cs=cscartData[code];
+    let status='?';if(cs)status=cs.status;else if(exactStock[code]!==undefined)status='E';
+    const stock=cs?cs.stock:null;
+    const exactVal=getCorrectedExact(code);
+    const exactDisplay=exactVal!==undefined?exactVal:null;
+    const avg=getAvg3Mo(code),sfc=exactDisplay!==null?exactDisplay:(stock!==null?stock:0),ml=avg>0?Math.round(sfc/avg*10)/10:-1;
+    mergedData.push({...m,status,code,stock,exact:exactDisplay,avg,monthsLeft:ml});});
   document.getElementById('stockEmpty').style.display='none';document.getElementById('stockDash').style.display='block';
   populateFilters();renderStockTable();
 }
@@ -611,10 +646,10 @@ function getUrgency(r){if(r.avg<=0)return'nosale';const s=r.stock!==null?r.stock
 function populateFilters(){const sel=document.getElementById('filterSupplier');const sups=[...new Set(mergedData.map(r=>r.supplier))].filter(Boolean).sort();sel.innerHTML='<option value="">All ('+sups.length+')</option>';sups.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)})}
 function getActiveSt(){return[...document.querySelectorAll('.status-btn.active')].map(b=>b.dataset.st)}
 function toggleSt(b){b.classList.toggle('active');renderStockTable()}
-function clearFilters(){document.getElementById('filterSupplier').value='';document.getElementById('filterSearch').value='';document.getElementById('filterUrgency').value='';document.querySelectorAll('.status-btn').forEach(b=>b.classList.toggle('active',b.dataset.st==='A'));renderStockTable()}
+function clearFilters(){document.getElementById('filterSupplier').value='';document.getElementById('filterSearch').value='';document.getElementById('filterUrgency').value='';document.getElementById('filterChina').value='';document.querySelectorAll('.status-btn').forEach(b=>b.classList.toggle('active',b.dataset.st==='A'));renderStockTable()}
 function renderStockTable(){
-  const supplier=document.getElementById('filterSupplier').value,search=document.getElementById('filterSearch').value.toLowerCase(),urgency=document.getElementById('filterUrgency').value,sts=getActiveSt();
-  let filtered=mergedData.filter(r=>{if(sts.length&&!sts.includes(r.status))return false;if(supplier&&r.supplier!==supplier)return false;if(search&&!r.code.toLowerCase().includes(search)&&!(r.description||'').toLowerCase().includes(search))return false;if(urgency&&getUrgency(r)!==urgency)return false;return true});
+  const supplier=document.getElementById('filterSupplier').value,search=document.getElementById('filterSearch').value.toLowerCase(),urgency=document.getElementById('filterUrgency').value,sts=getActiveSt(),chinaF=document.getElementById('filterChina').value;
+  let filtered=mergedData.filter(r=>{if(sts.length&&!sts.includes(r.status))return false;if(supplier&&r.supplier!==supplier)return false;if(search&&!r.code.toLowerCase().includes(search)&&!(r.description||'').toLowerCase().includes(search))return false;if(urgency&&getUrgency(r)!==urgency)return false;if(chinaF==='yes'&&!chinaProducts[r.code])return false;if(chinaF==='no'&&chinaProducts[r.code])return false;return true});
   filtered.sort((a,b)=>{let va,vb;switch(sortCol){case'status':va=a.status;vb=b.status;break;case'code':va=a.code;vb=b.code;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'description':va=a.description;vb=b.description;break;case'stock':va=a.stock??-9999;vb=b.stock??-9999;break;case'exact':va=a.exact??-9999;vb=b.exact??-9999;break;case'avg':va=a.avg;vb=b.avg;break;case'po':va=(poData[a.code]||{}).po||'';vb=(poData[b.code]||{}).po||'';break;case'podate':va=(poData[a.code]||{}).date||'';vb=(poData[b.code]||{}).date||'';break;case'group':va=a.group||'';vb=b.group||'';break;default:va=a.monthsLeft;vb=b.monthsLeft}if(sortCol==='last'){const ua=getUrgency(a),ub=getUrgency(b);if(ua==='nosale'&&ub!=='nosale')return 1;if(ub==='nosale'&&ua!=='nosale')return-1}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return sortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const activeFiltered=filtered.filter(r=>r.status==='A'),crit=activeFiltered.filter(r=>getUrgency(r)==='critical').length,warn=activeFiltered.filter(r=>getUrgency(r)==='warning').length,low=activeFiltered.filter(r=>getUrgency(r)==='low').length,ok=activeFiltered.filter(r=>getUrgency(r)==='ok').length;
   const totalShown=filtered.length;
@@ -714,7 +749,7 @@ async function loadForecast(input){
 async function clearChinaData(){if(!confirm('Clear China product list?'))return;
   await sb.from('china_products').delete().neq('code','');
   await sb.from('china_seasonality').delete().neq('product_group','');
-  chinaProducts={};chinaSeasonality={};draftOrder={};toast('China data cleared');updateStatus();renderChinaTab();}
+  chinaProducts={};chinaSeasonality={};toast('China data cleared');updateStatus();renderChinaTab();}
 
 function getSeasonFactor(group,mi){const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1}
 function projectStock(code,curStock,avg,group,orderQty,arrDate){
@@ -733,17 +768,15 @@ function getChinaAvg(code){
 }
 
 function getStockoutInfo(code){
-  const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
-  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0);
+  const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
+  const curStock=ex!==undefined?ex:(cs?cs.stock:0);
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,activeMo=chinaAvg.activeMo,totalMo=chinaAvg.totalMo;
   const group=cp.group||m.group||'',lt=cp.leadTime||120;
   const proj=projectStock(code,curStock,avg,group,0,null);
   let soIdx=-1;for(let i=0;i<proj.length;i++){if(proj[i].stock<=0){soIdx=i;break}}
   const soDate=soIdx>=0?proj[soIdx].date:null,obDate=soDate?new Date(soDate.getTime()-lt*86400000):null;
-  const draft=draftOrder[code];let projO=proj;
-  if(draft&&draft.qty>0){const ai=document.getElementById('orderArrival');const arr=ai&&ai.value?new Date(ai.value):addMonths(new Date(),4);projO=projectStock(code,curStock,avg,group,draft.qty,arr)}
-  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,activeMo,totalMo,leadTime:lt,projection:proj,projWithOrder:projO,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(ex!==undefined?'E':'?')}}
+  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,activeMo,totalMo,leadTime:lt,projection:proj,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(exactStock[code]!==undefined?'E':'?')}}
 
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
 
@@ -765,25 +798,16 @@ function renderChinaTable(){
   if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
   items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
-  document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div><div class="card"><div class="card-label">In Draft Order</div><div class="card-value purple">${Object.keys(draftOrder).length}</div></div>`;
+  document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div>`;
   const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
-  document.getElementById('chinaBody').innerHTML=items.map(r=>{const isLate=r.orderByDate&&r.orderByDate<now,isSoon=r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1),cls=isLate?'urgent-critical':isSoon?'urgent-warning':'',inO=!!draftOrder[r.code];
+  document.getElementById('chinaBody').innerHTML=items.map(r=>{const isLate=r.orderByDate&&r.orderByDate<now,isSoon=r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1),cls=isLate?'urgent-critical':isSoon?'urgent-warning':'';
     let soH;if(r.avg<=0)soH='<span style="color:var(--text3)">No data</span>';else if(!r.stockoutDate)soH='<span style="color:var(--green)">15+ mo</span>';else soH=`<span style="color:${isLate?'var(--red)':isSoon?'var(--orange)':'var(--text)'};font-weight:${isLate||isSoon?'600':'400'}">${fmtDate(r.stockoutDate)}</span>`;
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
-    const useP=inO?r.projWithOrder:r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
+    const useP=r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td><button class="btn" style="padding:2px 6px;font-size:14px;${inO?'color:var(--green);border-color:var(--green)':''}" onclick="toggleOrder('${r.code}')" title="Add to draft order">${inO?'✓':'+'}</button></td><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
-  renderOrderPanel();}
+    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
+}
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
-
-function toggleOrder(code){if(draftOrder[code])delete draftOrder[code];else draftOrder[code]={qty:0,price:0};renderChinaTable()}
-function updateOrderQty(code,qty){draftOrder[code].qty=parseNum(qty);renderChinaTable()}
-function updateOrderPrice(code,price){draftOrder[code].price=parseNum(price);renderOrderPanel()}
-function renderOrderPanel(){
-  const codes=Object.keys(draftOrder);document.getElementById('orderEmpty').style.display=codes.length?'none':'block';document.getElementById('orderTotal').style.display=codes.length?'block':'none';document.getElementById('orderItemCount').textContent=codes.length+' items';
-  document.getElementById('orderItems').innerHTML=codes.map(code=>{const d=draftOrder[code],m=masterItems[code]||{};return`<div class="order-item"><div class="order-item-top"><strong>${code}</strong><span class="remove" onclick="toggleOrder('${code}')">×</span></div><div class="order-item-desc">${esc(m.description||'')}</div><div class="order-fields"><div><label>Quantity</label><input type="number" value="${d.qty}" min="0" onchange="updateOrderQty('${code}',this.value)" style="width:100%"></div><div><label>Unit price (USD)</label><input type="number" value="${d.price}" min="0" step="0.01" onchange="updateOrderPrice('${code}',this.value)" style="width:100%"></div></div></div>`}).join('');
-  let tU=0,tC=0;codes.forEach(c=>{tU+=draftOrder[c].qty;tC+=draftOrder[c].qty*draftOrder[c].price});
-  document.getElementById('otItems').textContent=codes.length;document.getElementById('otUnits').textContent=tU.toLocaleString();document.getElementById('otCost').textContent='$'+tC.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0})}
 
 // ═══════════════════════════════════════════════
 // ORDER SIMULATOR
@@ -1057,8 +1081,8 @@ function fmtDateShort(d){return d.toLocaleDateString('en-US',{month:'short',day:
 
 function getStockoutInfoForOrder(code,orderQty,arrDate){
   const cp=chinaProducts[code];if(!cp)return null;
-  const m=masterItems[code]||{},cs=cscartData[code],ex=exactStock[code];
-  const curStock=(cs?cs.stock:null)??(ex!==undefined?ex:0);
+  const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
+  const curStock=ex!==undefined?ex:(cs?cs.stock:0);
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
   const projBefore=projectStock(code,curStock,avg,group,0,null);
