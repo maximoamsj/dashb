@@ -638,7 +638,7 @@ function rebuildMerged(){
   document.getElementById('stockEmpty').style.display='none';document.getElementById('stockDash').style.display='block';
   populateFilters();renderStockTable();
 }
-function getUrgency(r){if(r.avg<=0)return'nosale';const s=r.stock!==null?r.stock:(r.exact!==null?r.exact:null);if(s!==null&&s<=0)return'critical';if(r.monthsLeft<=0)return'critical';if(r.monthsLeft<1)return'warning';if(r.monthsLeft<2)return'low';return'ok'}
+function getUrgency(r){if(r.avg<=0)return'nosale';const s=r.exact!==null?r.exact:(r.stock!==null?r.stock:null);if(s!==null&&s<=0)return'critical';if(r.monthsLeft<=0)return'critical';if(r.monthsLeft<1)return'warning';if(r.monthsLeft<2)return'low';return'ok'}
 
 // ═══════════════════════════════════════════════
 // STOCK TABLE
