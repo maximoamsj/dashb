@@ -169,6 +169,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
       <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Order Simulator</div>
+      <div class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
     <div class="sidebar-section">
       <h4>Data Status</h4>
@@ -336,6 +337,27 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         </div>
       </div>
     </div>
+    <!-- ════════════ SETTINGS ════════════ -->
+    <div class="tab-content" id="tab-settings">
+      <div class="topbar"><h2>Settings</h2></div>
+      <div class="content">
+        <div style="max-width:680px">
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Stock calculations</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Control how stock values are computed across the dashboard.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+              <input type="checkbox" id="settingApplyVerschil" onchange="updateSetting('applyVerschil',this.checked)" style="margin-top:3px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Apply Verschil correction</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">When enabled, the displayed Exact stock subtracts the Verschil amount (real_exact = exact − verschil). Affects Stock Alerts, Months Left, China Order Planner, and Order Simulator. The Verschil data stays in Supabase either way.</div>
+                <div id="verschilStatusHint" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -396,6 +418,8 @@ let currentBoatId=null, currentPOId=null;
 let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
 let chinaCoverage=6; // months to cover for suggested order qty
 let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
+let settings={applyVerschil:true};
+try{const s=JSON.parse(localStorage.getItem('kn_settings')||'{}');Object.assign(settings,s)}catch(e){}
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -527,7 +551,27 @@ function updateStatus(){
 // Refresh "X ago" labels every minute
 setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings()}
+
+function renderSettings(){
+  document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
+  const hint=document.getElementById('verschilStatusHint');
+  const n=Object.keys(verschilData).length;
+  if(!n)hint.textContent='(No Verschil data uploaded yet)';
+  else if(settings.applyVerschil)hint.innerHTML=`<span style="color:var(--green)">●</span> Currently applying ${n} adjustments`;
+  else hint.innerHTML=`<span style="color:var(--text3)">●</span> ${n} adjustments stored but not applied`;
+}
+
+function updateSetting(key,value){
+  settings[key]=value;
+  try{localStorage.setItem('kn_settings',JSON.stringify(settings))}catch(e){}
+  toast(`Setting saved: ${key} = ${value}`);
+  renderSettings();
+  // Re-render anything that depends on the setting
+  if(mergedData.length)rebuildMerged();
+  if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  if(document.getElementById('tab-simulator').classList.contains('active')&&currentBoatId)renderBoatDetail();
+}
 
 // ═══════════════════════════════════════════════
 // 1. MASTER
@@ -646,6 +690,7 @@ function getAvg3Mo(code){const p=salesPeriods;if(!p.length)return 0;const rec=p.
 function getCorrectedExact(code){
   const ex=exactStock[code];
   if(ex===undefined)return undefined;
+  if(!settings.applyVerschil)return ex;
   const v=verschilData[code];
   return v!==undefined?ex-v:ex;
 }
@@ -1057,12 +1102,20 @@ function renderBoatTotals(){
     if(Object.keys(po.items).length)poSummaries.push(`${esc(po.name)}: ${sym}${poVal.toFixed(0)} (€${eurVal.toFixed(0)})`);
   });
 
+  // Validate arrival date
+  let arrDisplay='—',arrInvalid=false;
+  if(b.arrival_date){
+    const d=new Date(b.arrival_date);
+    if(isNaN(d.getTime())||d.getFullYear()<2000||d.getFullYear()>2100){arrDisplay='⚠ Invalid date';arrInvalid=true}
+    else arrDisplay=fmtDateShort(d);
+  }
+
   document.getElementById('boatTotals').innerHTML=`
     <div class="stat"><span class="stat-lbl">POs</span><span class="stat-val">${pos.length}</span></div>
     <div class="stat"><span class="stat-lbl">Products</span><span class="stat-val">${totalProducts}</span></div>
     <div class="stat"><span class="stat-lbl">Total units</span><span class="stat-val">${totalUnits.toLocaleString()}</span></div>
     <div class="stat"><span class="stat-lbl">Total (EUR)</span><span class="stat-val purple">€${totalEUR.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px">${b.arrival_date?fmtDateShort(new Date(b.arrival_date)):'—'}</span></div>`;
+    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px${arrInvalid?';color:var(--orange)':''}">${arrDisplay}</span></div>`;
 }
 
 // ═══ PO ITEM CRUD ═══
@@ -1185,9 +1238,7 @@ function getStockoutInfoForOrder(code,orderQty,arrDate){
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
   const otherDels=getOtherBoatDeliveries(code,currentBoatId);
-  // BEFORE = projection with other boats but NOT this boat
   const projBefore=projectStockMulti(code,curStock,avg,group,otherDels);
-  // AFTER = projection with other boats AND this boat
   const ownDel=orderQty>0&&arrDate?[{date:arrDate,qty:orderQty}]:[];
   const projAfter=projectStockMulti(code,curStock,avg,group,[...otherDels,...ownDel]);
   let improvement=0;
