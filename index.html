@@ -248,9 +248,9 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="cards" id="chinaCards"></div>
           <div class="china-layout" style="grid-template-columns:1fr">
             <div class="left">
-              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
+              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div><div class="filter-group"><label>Coverage</label><select id="chinaCoverage" onchange="setChinaCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
-                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
+                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('suggested')" style="color:var(--purple)">Suggested</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
             </div>
           </div>
@@ -278,6 +278,15 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
               <div class="filter-group"><label>Notes</label><input type="text" id="boatNotes" onchange="saveBoatMeta()" placeholder="optional" style="width:200px"></div>
               <button class="btn btn-primary" onclick="newPO()" style="margin-left:auto">+ New PO</button>
               <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentBoat()">Delete Boat</button>
+            </div>
+
+            <!-- Other-boats toggle -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="toggleOtherBoats" onchange="toggleIncludeOtherBoats(this.checked)" checked>
+                Include other boats' arrivals in projection
+              </label>
+              <span id="otherBoatsHint" style="font-size:11px;color:var(--text3)"></span>
             </div>
 
             <!-- Boat summary -->
@@ -384,6 +393,9 @@ let chinaProducts=JSON.parse('{}'), chinaSeasonality=JSON.parse('{}');
 let poData={}; // code -> {po, date}
 let savedBoats={}; // id -> {id,name,arrival_date,notes,orders:{po_id:{id,name,supplier,currency,exchange_rate,notes,items:{code:{qty,price}}}}}
 let currentBoatId=null, currentPOId=null;
+let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
+let chinaCoverage=6; // months to cover for suggested order qty
+let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -398,21 +410,27 @@ async function initApp(){
   const ai=document.getElementById('orderArrival');if(ai)ai.value=defArr.toISOString().split('T')[0];
 }
 
+async function fetchLatestTimestamp(table){const{data}=await sb.from(table).select('updated_at').order('updated_at',{ascending:false}).limit(1);return data&&data[0]?data[0].updated_at:null}
+
 async function loadMasterFromDB(){
   const data=await fetchAll('master_items');
   data.forEach(r=>{masterItems[r.code]={supplier:r.supplier,description:r.description,price:r.price,group:r.item_group,bu:r.business_unit}});
+  lastUpdated.master=await fetchLatestTimestamp('master_items');
 }
 async function loadCscartFromDB(){
   const data=await fetchAll('cscart_stock');
   data.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
+  lastUpdated.cscart=await fetchLatestTimestamp('cscart_stock');
 }
 async function loadExactFromDB(){
   const data=await fetchAll('exact_stock');
   data.forEach(r=>{exactStock[r.code]=r.stock});
+  lastUpdated.exact=await fetchLatestTimestamp('exact_stock');
 }
 async function loadVerschilFromDB(){
   const data=await fetchAll('verschil_stock');
   data.forEach(r=>{verschilData[r.code]=r.verschil});
+  lastUpdated.verschil=await fetchLatestTimestamp('verschil_stock');
 }
 async function loadSalesFromDB(){
   const data=await fetchAll('sales_monthly');
@@ -490,20 +508,24 @@ function fmtDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Se
 function monthDiff(a,b){return(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())}
 function addMonths(d,n){const r=new Date(d);r.setMonth(r.getMonth()+n);return r}
 function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000)}
+function timeAgo(ts){if(!ts)return'';const diff=Date.now()-new Date(ts).getTime();const m=Math.floor(diff/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';const d=Math.floor(h/24);if(d<30)return d+'d ago';return Math.floor(d/30)+'mo ago'}
 async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i+=batchSize){const chunk=rows.slice(i,i+batchSize);const{error}=await sb.from(table).upsert(chunk,{onConflict:undefined});if(error)throw error}}
 async function fetchAll(table,pageSize=1000){let all=[],from=0;while(true){const{data,error}=await sb.from(table).select('*').range(from,from+pageSize-1);if(error)throw error;if(!data||!data.length)break;all=all.concat(data);if(data.length<pageSize)break;from+=pageSize;}return all}
 
 function updateStatus(){
   const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hv=Object.keys(verschilData).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
   setDot('dotMaster',hm);setDot('dotCscart',hc);setDot('dotExact',he);setDot('dotVerschil',hv);setDot('dotSales',hs);setDot('dotChina',hch);
-  document.getElementById('lblMaster').textContent=hm?`Master: ${Object.keys(masterItems).length}`:'Master: not loaded';
-  document.getElementById('lblCscart').textContent=hc?`Cscart: ${Object.keys(cscartData).length}`:'Cscart: not loaded';
-  document.getElementById('lblExact').textContent=he?`Exact: ${Object.keys(exactStock).length}`:'Exact: not loaded';
-  document.getElementById('lblVerschil').textContent=hv?`Verschil: ${Object.keys(verschilData).length} adj.`:'Verschil: not loaded';
+  const ts=t=>t?` · <span style="color:var(--text3)">${timeAgo(t)}</span>`:'';
+  document.getElementById('lblMaster').innerHTML=hm?`Master: ${Object.keys(masterItems).length}${ts(lastUpdated.master)}`:'Master: not loaded';
+  document.getElementById('lblCscart').innerHTML=hc?`Cscart: ${Object.keys(cscartData).length}${ts(lastUpdated.cscart)}`:'Cscart: not loaded';
+  document.getElementById('lblExact').innerHTML=he?`Exact: ${Object.keys(exactStock).length}${ts(lastUpdated.exact)}`:'Exact: not loaded';
+  document.getElementById('lblVerschil').innerHTML=hv?`Verschil: ${Object.keys(verschilData).length}${ts(lastUpdated.verschil)}`:'Verschil: not loaded';
   document.getElementById('lblSales').textContent=hs?`Sales: ${salesPeriods.length} mo`:'Sales: 0 months';
   document.getElementById('lblChina').textContent=hch?`China: ${Object.keys(chinaProducts).length}`:'China: not loaded';
   ['step1','step2','step3','step4'].forEach((id,i)=>document.getElementById(id).classList.toggle('done',[hm,hc,he,hs][i]));
 }
+// Refresh "X ago" labels every minute
+setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
 function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator()}
 
@@ -529,7 +551,7 @@ async function loadMaster(input){
       const rows=Object.values(deduped);
       await sb.from('master_items').delete().neq('code','');
       await batchUpsert('master_items',rows);
-      toast(`Master: ${rows.length} products saved`);updateStatus();rebuildMerged();
+      toast(`Master: ${rows.length} products saved`);lastUpdated.master=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='LogItems (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -555,7 +577,7 @@ async function loadCscart(input){
       rows.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
       await sb.from('cscart_stock').delete().neq('code','');
       await batchUpsert('cscart_stock',rows);
-      toast(`Cscart: ${rows.length} items saved`);updateStatus();rebuildMerged();
+      toast(`Cscart: ${rows.length} items saved`);lastUpdated.cscart=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Cscart CSV'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -583,7 +605,7 @@ async function loadExactStock(input){
       const rows=Object.values(deduped);
       await sb.from('exact_stock').delete().neq('code','');
       await batchUpsert('exact_stock',rows);
-      toast(`Exact: ${rows.length} items saved`);updateStatus();rebuildMerged();
+      toast(`Exact: ${rows.length} items saved`);lastUpdated.exact=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Exact Stock (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -612,7 +634,7 @@ async function loadVerschil(input){
       const rows=Object.values(deduped);
       await sb.from('verschil_stock').delete().neq('code','');
       if(rows.length)await batchUpsert('verschil_stock',rows);
-      toast(`Verschil: ${rows.length} adjustments saved`);updateStatus();rebuildMerged();
+      toast(`Verschil: ${rows.length} adjustments saved`);lastUpdated.verschil=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Verschil (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -657,10 +679,27 @@ function renderStockTable(){
   const totalShown=filtered.length;
   document.getElementById('stockCards').innerHTML=`<div class="card"><div class="card-label">Active</div><div class="card-value">${activeFiltered.length}</div></div><div class="card"><div class="card-label">Out of Stock</div><div class="card-value red">${crit}</div></div><div class="card"><div class="card-label">Critical &lt;1 mo</div><div class="card-value orange">${warn}</div></div><div class="card"><div class="card-label">Low &lt;2 mo</div><div class="card-value cyan">${low}</div></div><div class="card"><div class="card-label">OK 2+ mo</div><div class="card-value green">${ok}</div></div>`;
   const badge=document.getElementById('alertBadge');const globalAct=mergedData.filter(r=>r.status==='A');const gac=globalAct.filter(r=>getUrgency(r)==='critical').length+globalAct.filter(r=>getUrgency(r)==='warning').length;badge.textContent=gac;badge.style.display=gac>0?'inline':'none';
-  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td class="col-cs">${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td class="col-cs">${dH}</td><td>${r.avg||'—'}</td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
+  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td class="col-cs">${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td class="col-cs">${dH}</td><td><div style="display:flex;align-items:center;gap:8px">${r.avg||'—'}${renderSparkline(r.code)}</div></td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
   document.getElementById('stockCount').textContent=`Showing ${filtered.length} of ${mergedData.length}`;
 }
 function doSort(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true}renderStockTable()}
+
+function getRecentSales(code,n=6){const p=salesPeriods.slice(-n);return p.map(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);return{period:per,qty:it?it.quantity:0}})}
+function renderSparkline(code){
+  const data=getRecentSales(code,6);
+  if(data.length<2||data.every(d=>d.qty===0))return'';
+  const max=Math.max(...data.map(d=>d.qty),1);
+  const w=58,h=18;
+  const pts=data.map((d,i)=>{const x=(i/(data.length-1))*w;const y=h-(d.qty/max)*(h-2)+1;return`${x.toFixed(1)},${y.toFixed(1)}`}).join(' ');
+  const half=Math.floor(data.length/2);
+  const fAvg=data.slice(0,half).reduce((s,d)=>s+d.qty,0)/half;
+  const sAvg=data.slice(half).reduce((s,d)=>s+d.qty,0)/(data.length-half);
+  const thresh=Math.max(fAvg*0.1,1);
+  const color=sAvg-fAvg>thresh?'#22c55e':sAvg-fAvg<-thresh?'#ef4444':'#8896a8';
+  const lastY=h-(data[data.length-1].qty/max)*(h-2)+1;
+  const tip=data.map(d=>`${d.period}: ${d.qty}`).join(' · ');
+  return`<svg width="60" height="20" viewBox="0 0 60 20" style="vertical-align:middle;flex-shrink:0"><title>${tip}</title><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${w.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2" fill="${color}"/></svg>`;
+}
 function toggleCSColumns(){
   const t=document.getElementById('stockTable')||document.querySelector('#tab-stock table');
   const btn=document.getElementById('btnToggleCS');
@@ -760,12 +799,22 @@ async function clearChinaData(){if(!confirm('Clear China product list?'))return;
 
 function getSeasonFactor(group,mi){const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1}
 function projectStock(code,curStock,avg,group,orderQty,arrDate){
+  // Single-delivery wrapper for backward compatibility
+  const dels=arrDate&&orderQty>0?[{date:arrDate,qty:orderQty}]:[];
+  return projectStockMulti(code,curStock,avg,group,dels);
+}
+function projectStockMulti(code,curStock,avg,group,deliveries){
   const now=new Date(),months=[];let stock=curStock;
-  for(let i=0;i<15;i++){const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
-    let recv=0;if(arrDate&&orderQty>0&&d.getMonth()===arrDate.getMonth()&&d.getFullYear()===arrDate.getFullYear())recv=orderQty;
+  for(let i=0;i<15;i++){
+    const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
+    let recv=0;
+    deliveries.forEach(del=>{if(del.qty>0&&del.date&&d.getMonth()===del.date.getMonth()&&d.getFullYear()===del.date.getFullYear())recv+=del.qty});
     stock=stock-sales;
     if(recv>0)stock=Math.max(stock,0)+recv;
-    months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
+    months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});
+  }
+  return months;
+}
 
 function getChinaAvg(code){
   const p=salesPeriods;if(!p.length)return{avg:0,activeMo:0,totalMo:0};
@@ -773,6 +822,17 @@ function getChinaAvg(code){
   rec.forEach(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);if(it&&it.quantity>0){t+=it.quantity;activeMo++}});
   return{avg:activeMo>0?Math.round(t/activeMo*10)/10:0,activeMo,totalMo:rec.length};
 }
+
+function getSuggestedQty(info){
+  if(!info||info.avg<=0)return{qty:null,label:'no data',breakdown:''};
+  const need=info.avg*chinaCoverage;
+  const stock=Math.max(info.currentStock,0);
+  const qty=Math.max(0,Math.ceil(need-stock));
+  if(qty===0)return{qty:0,label:'covered',breakdown:`stock ≥ ${need.toFixed(0)}`};
+  return{qty,label:'',breakdown:`${info.avg} × ${chinaCoverage} − ${info.currentStock}`};
+}
+
+function setChinaCoverage(v){chinaCoverage=parseInt(v)||6;renderChinaTable()}
 
 function getStockoutInfo(code){
   const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
@@ -803,16 +863,20 @@ function renderChinaTable(){
   if(supplierF)items=items.filter(r=>r.supplier===supplierF);
   if(groupF)items=items.filter(r=>r.group===groupF);
   if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
-  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'suggested':va=(getSuggestedQty(a).qty??-1);vb=(getSuggestedQty(b).qty??-1);break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
   document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div>`;
   const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
   document.getElementById('chinaBody').innerHTML=items.map(r=>{const isLate=r.orderByDate&&r.orderByDate<now,isSoon=r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1),cls=isLate?'urgent-critical':isSoon?'urgent-warning':'';
     let soH;if(r.avg<=0)soH='<span style="color:var(--text3)">No data</span>';else if(!r.stockoutDate)soH='<span style="color:var(--green)">15+ mo</span>';else soH=`<span style="color:${isLate?'var(--red)':isSoon?'var(--orange)':'var(--text)'};font-weight:${isLate||isSoon?'600':'400'}">${fmtDate(r.stockoutDate)}</span>`;
+    const sug=getSuggestedQty(r);let sH;
+    if(sug.qty===null)sH='<span style="color:var(--text3);font-size:11px">no data</span>';
+    else if(sug.qty===0)sH='<span style="color:var(--text3);font-size:11px">covered</span>';
+    else sH=`<span style="color:var(--purple);font-weight:600">${sug.qty.toLocaleString()}</span><br><span style="font-size:9px;color:var(--text3);font-family:var(--font)">${sug.breakdown}</span>`;
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
     const useP=r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
+    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td style="background:rgba(167,139,250,.05)">${sH}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
 }
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
 
@@ -856,6 +920,7 @@ async function newBoat(){
   toast(`Boat "${name}" created`);renderSimulator();
 }
 function selectBoat(id){currentBoatId=id;currentPOId=null;renderSimulator()}
+function toggleIncludeOtherBoats(checked){includeOtherBoats=checked;renderBoatDetail()}
 async function deleteBoat(id){
   const b=savedBoats[id];if(!b)return;
   if(!confirm(`Delete "${b.name}" and all its POs?`))return;
@@ -916,6 +981,16 @@ function renderBoatDetail(){
   document.getElementById('boatName').value=b.name||'';
   document.getElementById('boatArrival').value=b.arrival_date||'';
   document.getElementById('boatNotes').value=b.notes||'';
+  const cb=document.getElementById('toggleOtherBoats');if(cb)cb.checked=includeOtherBoats;
+
+  // Count other future boats for the hint
+  const now=new Date();
+  const otherFuture=Object.values(savedBoats).filter(x=>x.id!==currentBoatId&&x.arrival_date&&new Date(x.arrival_date)>=now);
+  const hint=document.getElementById('otherBoatsHint');
+  if(hint){
+    if(otherFuture.length===0)hint.textContent='(no other future boats)';
+    else hint.innerHTML='('+otherFuture.map(x=>`${esc(x.name)} → ${fmtDateShort(new Date(x.arrival_date))}`).join(', ')+')';
+  }
 
   // PO tabs
   const pos=Object.values(b.orders);
@@ -1072,13 +1147,13 @@ function renderBoatProjections(){
       <div class="sim-proj-header">
         <div>
           <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
-          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months</div>
+          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months${info.otherDels&&info.otherDels.length?' · <span style="color:var(--cyan)">also: '+info.otherDels.map(d=>'+'+d.qty+' from '+esc(d.boatName)+' '+fmtDateShort(d.date)).join(', ')+'</span>':''}</div>
         </div>
       </div>
-      <div class="sim-rows-label">WITHOUT ORDER</div>
+      <div class="sim-rows-label">${includeOtherBoats&&info.otherDels&&info.otherDels.length?'WITHOUT THIS BOAT (other boats included)':'WITHOUT ORDER'}</div>
       <div class="sim-grid">${headerRow}</div>
       <div class="sim-grid">${beforeRow}</div>
-      <div class="sim-rows-label" style="color:var(--purple)">WITH ORDER (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
+      <div class="sim-rows-label" style="color:var(--purple)">WITH THIS BOAT (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
       <div class="sim-grid">${afterRow}</div>
     </div>`;
   }).join('');
@@ -1086,17 +1161,38 @@ function renderBoatProjections(){
 
 function fmtDateShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
 
+function getOtherBoatDeliveries(code,excludeBoatId){
+  // Return [{date, qty}] for this product across all OTHER boats with future arrival dates
+  const deliveries=[];
+  if(!includeOtherBoats)return deliveries;
+  const now=new Date();
+  Object.values(savedBoats).forEach(boat=>{
+    if(boat.id===excludeBoatId)return;
+    if(!boat.arrival_date)return;
+    const arr=new Date(boat.arrival_date);
+    if(arr<now)return; // skip past arrivals
+    let qty=0;
+    Object.values(boat.orders).forEach(po=>{if(po.items[code])qty+=po.items[code].qty});
+    if(qty>0)deliveries.push({date:arr,qty,boatName:boat.name});
+  });
+  return deliveries;
+}
+
 function getStockoutInfoForOrder(code,orderQty,arrDate){
   const cp=chinaProducts[code];if(!cp)return null;
   const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
   const curStock=ex!==undefined?ex:(cs?cs.stock:0);
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
-  const projBefore=projectStock(code,curStock,avg,group,0,null);
-  const projAfter=orderQty>0&&arrDate?projectStock(code,curStock,avg,group,orderQty,arrDate):projBefore;
+  const otherDels=getOtherBoatDeliveries(code,currentBoatId);
+  // BEFORE = projection with other boats but NOT this boat
+  const projBefore=projectStockMulti(code,curStock,avg,group,otherDels);
+  // AFTER = projection with other boats AND this boat
+  const ownDel=orderQty>0&&arrDate?[{date:arrDate,qty:orderQty}]:[];
+  const projAfter=projectStockMulti(code,curStock,avg,group,[...otherDels,...ownDel]);
   let improvement=0;
   for(let i=0;i<projBefore.length;i++){if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++}
-  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo};
+  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo,otherDels};
 }
 
 function exportBoatCSV(){
