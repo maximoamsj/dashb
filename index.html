@@ -736,12 +736,13 @@ function renderSparkline(code){
   const max=Math.max(...data.map(d=>d.qty),1);
   const w=58,h=18;
   const pts=data.map((d,i)=>{const x=(i/(data.length-1))*w;const y=h-(d.qty/max)*(h-2)+1;return`${x.toFixed(1)},${y.toFixed(1)}`}).join(' ');
-  const half=Math.floor(data.length/2);
-  const fAvg=data.slice(0,half).reduce((s,d)=>s+d.qty,0)/half;
-  const sAvg=data.slice(half).reduce((s,d)=>s+d.qty,0)/(data.length-half);
-  const thresh=Math.max(fAvg*0.1,1);
-  const color=sAvg-fAvg>thresh?'#22c55e':sAvg-fAvg<-thresh?'#ef4444':'#8896a8';
-  const lastY=h-(data[data.length-1].qty/max)*(h-2)+1;
+  // Compare latest to median of prior months (robust to spikes, captures recent direction)
+  const latest=data[data.length-1].qty;
+  const prior=data.slice(0,-1).map(d=>d.qty).sort((a,b)=>a-b);
+  const median=prior.length%2?prior[Math.floor(prior.length/2)]:(prior[prior.length/2-1]+prior[prior.length/2])/2;
+  const relDiff=median>0.5?(latest-median)/median:0;
+  const color=relDiff>0.15?'#22c55e':relDiff<-0.15?'#ef4444':'#8896a8';
+  const lastY=h-(latest/max)*(h-2)+1;
   const tip=data.map(d=>`${d.period}: ${d.qty}`).join(' · ');
   return`<svg width="60" height="20" viewBox="0 0 60 20" style="vertical-align:middle;flex-shrink:0"><title>${tip}</title><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${w.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2" fill="${color}"/></svg>`;
 }
