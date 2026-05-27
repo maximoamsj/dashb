@@ -407,6 +407,13 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             </div>
             <div id="apiKeyStatus" style="font-size:11px;margin-top:6px;color:var(--text3)"></div>
           </div>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Custom Instructions</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Tell the AI how you want it to behave. These instructions are included in every message automatically.</div>
+            <textarea id="settingCustomInstructions" rows="6" style="width:100%;resize:vertical;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;padding:10px;outline:none;line-height:1.5" placeholder="e.g. When I say 'analyze [supplier]', show trending up/down products, suggested order quantities, and anomalies. Always respond in English."></textarea>
+            <button class="btn" onclick="saveCustomInstructions()" style="margin-top:8px">Save Instructions</button>
+          </div>
         </div>
       </div>
     </div>
@@ -420,6 +427,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
   <div class="ai-header">
     <h3>🤖 AI Assistant</h3>
     <span style="font-size:10px;color:var(--text3)">Claude Sonnet</span>
+    <button class="ai-close" onclick="aiHistory=[];renderAIMessages()" title="Clear chat" style="font-size:14px;margin-right:-4px">🗑</button>
     <button class="ai-close" onclick="toggleAIPanel()">×</button>
   </div>
   <div class="ai-prompts">
@@ -646,6 +654,7 @@ function renderSettings(){
   const statusEl=document.getElementById('apiKeyStatus');
   if(key){keyEl.value=key;statusEl.innerHTML='<span style="color:var(--green)">● Key saved</span> — the 🤖 button appears in the bottom-right corner'}
   else{keyEl.value='';statusEl.innerHTML='<span style="color:var(--text3)">● No key set</span>'}
+  document.getElementById('settingCustomInstructions').value=getCustomInstructions();
   updateAIFab();
 }
 
@@ -1409,6 +1418,12 @@ function clearApiKey(){
   toast('API key cleared');renderSettings();updateAIFab();
 }
 function getApiKey(){try{return localStorage.getItem('kn_api_key')||''}catch(e){return''}}
+function getCustomInstructions(){try{return localStorage.getItem('kn_custom_instructions')||''}catch(e){return''}}
+function saveCustomInstructions(){
+  const text=document.getElementById('settingCustomInstructions').value;
+  try{localStorage.setItem('kn_custom_instructions',text)}catch(e){}
+  toast('Custom instructions saved');
+}
 function updateAIFab(){document.getElementById('aiFab').classList.toggle('has-key',!!getApiKey())}
 
 function toggleAIPanel(){
@@ -1416,8 +1431,49 @@ function toggleAIPanel(){
   p.classList.toggle('open');
 }
 
-function buildDataContext(){
+function buildDataContext(userMsg=''){
   const lines=[];
+  const msgLower=(userMsg||'').toLowerCase();
+
+  // Detect if user is asking about a specific supplier or group
+  const sm=window._sm||[];
+  const allSuppliers=[...new Set(sm.map(r=>r.supplier))].filter(Boolean);
+  const allGroups=[...new Set(sm.map(r=>r.item_group))].filter(Boolean);
+
+  // Fuzzy match: partial word matching (type "rommels" to match "Rommelsbacher ElektroHausgeräte GmbH")
+  function fuzzyFind(list,msg){
+    // 1. Exact full-name substring match
+    let match=list.find(s=>msg.includes(s.toLowerCase()));
+    if(match)return match;
+    // 2. Word-level: any user word (4+ chars) matches start of any word in supplier/group name
+    const userWords=msg.split(/[\s,.:!?]+/).filter(w=>w.length>=4);
+    let bestMatch=null,bestLen=0;
+    for(const item of list){
+      const itemWords=item.toLowerCase().split(/[\s]+/).filter(w=>w.length>=3);
+      for(const uw of userWords){
+        for(const iw of itemWords){
+          // "rommels" matches "rommelsbacher" (supplier word starts with user word)
+          // "rommelsbacher" matches "rommels" (user word starts with supplier word, if supplier word is 4+ chars)
+          if(iw.startsWith(uw)||uw.startsWith(iw)){
+            const matchLen=Math.min(uw.length,iw.length);
+            if(matchLen>bestLen){bestLen=matchLen;bestMatch=item}
+          }
+        }
+      }
+    }
+    return bestMatch;
+  }
+
+  const matchedSup=fuzzyFind(allSuppliers,msgLower);
+  const matchedGrp=fuzzyFind(allGroups,msgLower);
+  const fullMode=msgLower.includes('full catalog')||msgLower.includes('all products')||msgLower.includes('everything')||msgLower.includes('todos os produtos')||msgLower.includes('catálogo completo');
+
+  // Always include available suppliers and groups so AI can suggest corrections
+  lines.push('AVAILABLE SUPPLIERS: '+allSuppliers.join(', '));
+  lines.push('AVAILABLE ITEM GROUPS: '+allGroups.join(', '));
+  if(matchedSup)lines.push(`\n>> FILTERED BY SUPPLIER: ${matchedSup}`);
+  if(matchedGrp)lines.push(`\n>> FILTERED BY GROUP: ${matchedGrp}`);
+
   // Stock overview
   const act=mergedData.filter(r=>r.status==='A');
   const crit=act.filter(r=>getUrgency(r)==='critical');
@@ -1445,15 +1501,36 @@ function buildDataContext(){
   if(salesPeriods.length){
     const P=salesPeriods;
     lines.push(`\nSALES: ${P.length} months loaded (${P[0]} to ${P[P.length-1]})`);
-    const sm=window._sm||[];
     if(sm.length){
       const lat=P[P.length-1];
-      const top=sm.map(r=>({c:r.item_code,d:r.description,s:r.supplier,g:r.item_group,q:r['q_'+lat]||0})).filter(r=>r.q>0).sort((a,b)=>b.q-a.q).slice(0,15);
-      lines.push(`\nTOP 15 SELLERS (${lat}):`);
-      lines.push('code | description | supplier | group | qty_latest');
-      top.forEach(r=>lines.push(`${r.c} | ${r.d} | ${r.s} | ${r.g} | ${r.q}`));
 
-      // Biggest declines
+      // Determine which products to include based on user's question
+      let salesSubset;
+      let subsetLabel;
+      if(matchedSup){
+        salesSubset=sm.filter(r=>r.supplier===matchedSup);
+        subsetLabel=`ALL ${salesSubset.length} products for supplier "${matchedSup}"`;
+      }else if(matchedGrp){
+        salesSubset=sm.filter(r=>r.item_group===matchedGrp);
+        subsetLabel=`ALL ${salesSubset.length} products in group "${matchedGrp}"`;
+      }else if(fullMode){
+        salesSubset=sm.filter(r=>{let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));return tot>0});
+        subsetLabel=`ALL ${salesSubset.length} products with sales`;
+      }else{
+        salesSubset=sm.map(r=>{let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));return{...r,_tot:tot}}).filter(r=>r._tot>0).sort((a,b)=>b._tot-a._tot).slice(0,40);
+        subsetLabel=`top 40 by volume`;
+      }
+
+      // Add totals for sorting
+      salesSubset=salesSubset.map(r=>{if(r._tot===undefined){let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));r._tot=tot}return r}).sort((a,b)=>b._tot-a._tot);
+
+      lines.push(`\nMONTHLY SALES (${subsetLabel}):`);
+      lines.push('code | description | supplier | group | '+P.join(' | ')+' | total');
+      salesSubset.forEach(r=>{
+        lines.push(`${r.item_code} | ${r.description||''} | ${r.supplier||''} | ${r.item_group||''} | ${P.map(p=>r['q_'+p]||0).join(' | ')} | ${r._tot}`);
+      });
+
+      // Biggest declines (always include)
       const declines=sm.map(r=>{
         const lq=r['q_'+lat]||0;
         const prior=P.slice(0,-1).map(p=>r['q_'+p]||0).sort((a,b)=>a-b);
@@ -1511,7 +1588,9 @@ Guidelines:
 - The main stock source is Exact (not Cscart). Months Left = Exact stock / 3-month avg sales.
 - Flag unusual patterns: sudden sales drops, products with high avg but zero stock, etc.
 - When drafting POs, group products by supplier and show: code, description, suggested qty, and reasoning.
-- Respond in the same language as the user (Portuguese or English).`;
+- Respond in the same language as the user (Portuguese or English).
+- The data includes a list of AVAILABLE SUPPLIERS and ITEM GROUPS. If the user asks about a supplier or group that doesn't exactly match but is close (typo), suggest the correct name from the list. If the data says "FILTERED BY SUPPLIER/GROUP", you have the full monthly breakdown for that specific slice.
+- If the user asks about a supplier/group but the data only shows "top 40 by volume", it means the name wasn't recognized. Tell the user the correct name from the available list so they can ask again.`;
 
 const QUICK_PROMPTS={
   stock:'Give me a brief overview of my current stock situation. How many products are critical? Which suppliers have the most problems? What should I prioritize today?',
@@ -1542,17 +1621,15 @@ async function sendAI(){
   document.getElementById('aiSendBtn').disabled=true;
 
   try{
-    // Build context for first message or refresh periodically
-    const context=buildDataContext();
+    const context=buildDataContext(msg);
+    const customInst=getCustomInstructions();
+    const systemPrompt=AI_SYSTEM+(customInst?'\n\nUSER CUSTOM INSTRUCTIONS:\n'+customInst:'');
     const messages=[];
-    // Always send context as first user message for freshness
     if(aiHistory.length===1){
       messages.push({role:'user',content:`Here is my current dashboard data:\n\n${context}\n\n${msg}`});
     }else{
-      // Send context + conversation history
       messages.push({role:'user',content:`[Dashboard data update]\n${context}`});
       messages.push({role:'assistant',content:'I have your latest dashboard data. How can I help?'});
-      // Add last 10 messages to keep context manageable
       aiHistory.slice(-10).forEach(m=>messages.push({role:m.role,content:m.content}));
     }
 
@@ -1567,7 +1644,7 @@ async function sendAI(){
       body:JSON.stringify({
         model:'claude-sonnet-4-6',
         max_tokens:2048,
-        system:AI_SYSTEM,
+        system:systemPrompt,
         messages
       })
     });
@@ -1579,7 +1656,11 @@ async function sendAI(){
 
     const data=await resp.json();
     const reply=data.content.map(c=>c.text||'').join('\n').trim();
-    aiHistory.push({role:'assistant',content:reply});
+    const usage=data.usage||{};
+    const costIn=(usage.input_tokens||0)/1e6*3;
+    const costOut=(usage.output_tokens||0)/1e6*15;
+    const costTotal=costIn+costOut;
+    aiHistory.push({role:'assistant',content:reply,tokens_in:usage.input_tokens||0,tokens_out:usage.output_tokens||0,cost:costTotal});
   }catch(err){
     aiHistory.push({role:'assistant',content:`⚠ Error: ${err.message}`});
   }finally{
@@ -1592,12 +1673,15 @@ async function sendAI(){
 function renderAIMessages(){
   const el=document.getElementById('aiMessages');
   el.innerHTML='<div class="ai-msg system">Ask me about your stock, sales trends, or purchasing decisions. I can see all your dashboard data.</div>'+
-    aiHistory.map(m=>`<div class="ai-msg ${m.role}"><div class="ai-bubble">${m.role==='user'?esc(m.content):formatAIResponse(m.content)}</div></div>`).join('');
+    aiHistory.map(m=>{
+      if(m.role==='user')return`<div class="ai-msg user"><div class="ai-bubble">${esc(m.content)}</div></div>`;
+      const costLine=m.cost!==undefined?`<div style="font-size:10px;color:var(--text3);margin-top:8px;border-top:1px solid var(--border);padding-top:4px">${m.tokens_in} in + ${m.tokens_out} out · $${m.cost.toFixed(4)}</div>`:'';
+      return`<div class="ai-msg assistant"><div class="ai-bubble">${formatAIResponse(m.content)}${costLine}</div></div>`;
+    }).join('');
   el.scrollTop=el.scrollHeight;
 }
 
 function formatAIResponse(text){
-  // Basic markdown-like formatting
   return esc(text)
     .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
     .replace(/`(.*?)`/g,'<code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>')
