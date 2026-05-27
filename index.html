@@ -148,6 +148,32 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 .lock-box .lock-btn{width:100%;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .lock-box .lock-btn:hover{background:#2563eb}
 .lock-error{color:var(--red);font-size:12px;margin-bottom:10px;display:none}
+/* AI Chat Panel */
+.ai-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:900;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;transition:transform .15s}
+.ai-fab:hover{transform:scale(1.1)}
+.ai-fab.has-key{display:flex}
+.ai-panel{position:fixed;right:-440px;top:0;bottom:0;width:420px;background:var(--bg2);border-left:1px solid var(--border);z-index:950;display:flex;flex-direction:column;transition:right .25s ease}
+.ai-panel.open{right:0}
+.ai-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;flex-shrink:0}
+.ai-header h3{font-size:14px;font-weight:600;color:#fff;flex:1}
+.ai-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px 8px}
+.ai-close:hover{color:var(--text)}
+.ai-prompts{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.ai-prompt-btn{padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:10px;font-family:var(--font);white-space:nowrap}
+.ai-prompt-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--text3)}
+.ai-messages{flex:1;overflow-y:auto;padding:16px}
+.ai-msg{margin-bottom:14px;font-size:12px;line-height:1.6}
+.ai-msg.user{text-align:right}.ai-msg.user .ai-bubble{background:var(--accent);color:#fff;display:inline-block;padding:8px 14px;border-radius:12px 12px 2px 12px;max-width:85%;text-align:left}
+.ai-msg.assistant .ai-bubble{background:var(--bg3);color:var(--text);padding:10px 14px;border-radius:12px 12px 12px 2px;max-width:95%;white-space:pre-wrap}
+.ai-msg.assistant .ai-bubble strong{color:#fff}
+.ai-msg.system{text-align:center;color:var(--text3);font-size:11px;font-style:italic}
+.ai-typing{color:var(--purple);font-size:11px;padding:4px 16px}
+.ai-input-area{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.ai-input-area textarea{flex:1;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;padding:8px 12px;outline:none;min-height:36px;max-height:100px}
+.ai-input-area textarea:focus{border-color:var(--accent)}
+.ai-send{background:var(--purple);border:none;color:#fff;border-radius:6px;padding:8px 14px;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;flex-shrink:0}
+.ai-send:hover{background:#8b6fe0}
+.ai-send:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -211,7 +237,6 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             <div class="filter-group"><label>Urgency</label><select id="filterUrgency" onchange="renderStockTable()"><option value="">All</option><option value="critical">Out of stock (≤0)</option><option value="warning">Critical (&lt;1 mo)</option><option value="low">Low (&lt;2 mo)</option><option value="ok">OK (2+ mo)</option><option value="nosale">No sales data</option></select></div>
             <div class="filter-group"><label>China</label><select id="filterChina" onchange="renderStockTable()"><option value="">All</option><option value="yes">China only</option><option value="no">Non-China only</option></select></div>
             <span class="clear-btn" onclick="clearFilters()">Clear filters</span>
-            <button class="btn" id="btnToggleCS" onclick="toggleCSColumns()" style="font-size:11px;padding:5px 10px">Hide Cscart</button>
           </div>
           <div class="table-wrap"><div class="table-scroll"><table><thead><tr>
             <th onclick="doSort('status')">Status</th><th onclick="doSort('code')">Code</th><th onclick="doSort('supplier')">Supplier</th><th onclick="doSort('description')" style="min-width:200px">Description</th>
@@ -224,13 +249,13 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
     </div>
     <!-- ════════════ MONTHLY SALES ════════════ -->
     <div class="tab-content" id="tab-sales">
-      <div class="topbar"><h2>Monthly Sales</h2><button class="btn btn-primary" onclick="$f('fileSales')" id="btnSales">Load Monthly CSV</button><input type="file" id="fileSales" accept=".csv" multiple onchange="loadSalesCSV(this)"></div>
+      <div class="topbar"><h2>Monthly Sales</h2><button class="btn btn-primary" onclick="$f('fileSales')" id="btnSales">Load Monthly CSV</button><input type="file" id="fileSales" accept=".csv" multiple onchange="loadSalesCSV(this)"><button class="btn" onclick="exportSalesCSV()">Export CSV</button></div>
       <div class="content">
         <div id="salesEmpty" class="empty-state"><h3>No sales data</h3><p>Upload processed monthly CSV files.<br>Columns: period, item_code, description, quantity, sales_value, sales_amount</p><button class="btn btn-primary" onclick="$f('fileSales')">Load Files</button></div>
         <div id="salesDash" style="display:none">
           <div class="period-tags" id="periodTags"></div>
           <div class="sales-grid"><div class="chart-box"><h3>Top 20 Products (Latest Month)</h3><div class="chart-container"><canvas id="topChart"></canvas></div></div><div class="chart-box"><h3 id="trendTitle">Product Trend — click a row below</h3><div class="chart-container"><canvas id="trendChart"></canvas></div></div></div>
-          <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="salesSearch" placeholder="Code or description..." oninput="renderSalesTable()" style="width:200px"></div><div class="filter-group"><label>Sort by</label><select id="salesSort" onchange="renderSalesTable()"><option value="latest_desc">Latest month (high→low)</option><option value="latest_asc">Latest month (low→high)</option><option value="growth">Above avg</option><option value="decline">Below avg</option></select></div></div>
+          <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="salesSearch" placeholder="Code or description..." oninput="renderSalesTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="salesSupplier" onchange="renderSalesTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="salesGroup" onchange="renderSalesTable()"><option value="">All</option></select></div><div class="filter-group"><label>Sort by</label><select id="salesSort" onchange="renderSalesTable()"><option value="latest_desc">Latest month (high→low)</option><option value="latest_asc">Latest month (low→high)</option><option value="growth">Above avg</option><option value="decline">Below avg</option></select></div></div>
           <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 560px)"><table><thead><tr id="salesHead"></tr></thead><tbody id="salesBody"></tbody></table></div></div>
         </div>
       </div>
@@ -355,12 +380,64 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
               </div>
             </label>
           </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">Display</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Control which columns and data are visible.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+              <input type="checkbox" id="settingHideCscart" onchange="updateSetting('hideCscart',this.checked)" style="margin-top:3px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Hide Cscart columns</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Hides the Stock (CS) and Diff columns from the Stock Alerts table. Cscart data is still uploaded and stored — only the display is affected.</div>
+              </div>
+            </label>
+          </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">AI Assistant</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Connect Claude AI for in-dashboard data analysis and PO suggestions.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Anthropic API Key</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Get your key from <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. Stored in your browser only — never sent to Supabase.</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="password" id="settingApiKey" placeholder="sk-ant-..." style="flex:1;font-family:var(--mono);font-size:11px" value="">
+              <button class="btn" onclick="saveApiKey()">Save</button>
+              <button class="btn" onclick="clearApiKey()" style="color:var(--red);border-color:var(--red)">Clear</button>
+            </div>
+            <div id="apiKeyStatus" style="font-size:11px;margin-top:6px;color:var(--text3)"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- AI Chat -->
+<button class="ai-fab" id="aiFab" onclick="toggleAIPanel()" title="AI Assistant">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-header">
+    <h3>🤖 AI Assistant</h3>
+    <span style="font-size:10px;color:var(--text3)">Claude Sonnet</span>
+    <button class="ai-close" onclick="toggleAIPanel()">×</button>
+  </div>
+  <div class="ai-prompts">
+    <button class="ai-prompt-btn" onclick="aiQuick('stock')">📦 Stock overview</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('urgent')">🚨 Urgent orders</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('trends')">📈 Sales trends</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('po')">📋 Draft a PO</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('budget')">💰 Budget optimizer</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-msg system">Ask me about your stock, sales trends, or purchasing decisions. I can see all your dashboard data.</div>
+  </div>
+  <div class="ai-typing" id="aiTyping" style="display:none">Claude is thinking...</div>
+  <div class="ai-input-area">
+    <textarea id="aiInput" placeholder="Ask about your data..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+    <button class="ai-send" id="aiSendBtn" onclick="sendAI()">Send</button>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -418,7 +495,7 @@ let currentBoatId=null, currentPOId=null;
 let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
 let chinaCoverage=6; // months to cover for suggested order qty
 let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
-let settings={applyVerschil:true};
+let settings={applyVerschil:true,hideCscart:false};
 try{const s=JSON.parse(localStorage.getItem('kn_settings')||'{}');Object.assign(settings,s)}catch(e){}
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
@@ -432,6 +509,7 @@ async function initApp(){
   if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
   const defArr=new Date();defArr.setDate(defArr.getDate()+120);
   const ai=document.getElementById('orderArrival');if(ai)ai.value=defArr.toISOString().split('T')[0];
+  updateAIFab();
 }
 
 async function fetchLatestTimestamp(table){const{data}=await sb.from(table).select('updated_at').order('updated_at',{ascending:false}).limit(1);return data&&data[0]?data[0].updated_at:null}
@@ -555,11 +633,25 @@ function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.cla
 
 function renderSettings(){
   document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
+  document.getElementById('settingHideCscart').checked=!!settings.hideCscart;
   const hint=document.getElementById('verschilStatusHint');
   const n=Object.keys(verschilData).length;
   if(!n)hint.textContent='(No Verschil data uploaded yet)';
   else if(settings.applyVerschil)hint.innerHTML=`<span style="color:var(--green)">●</span> Currently applying ${n} adjustments`;
   else hint.innerHTML=`<span style="color:var(--text3)">●</span> ${n} adjustments stored but not applied`;
+  applyCscartVisibility();
+  // API key
+  const key=getApiKey();
+  const keyEl=document.getElementById('settingApiKey');
+  const statusEl=document.getElementById('apiKeyStatus');
+  if(key){keyEl.value=key;statusEl.innerHTML='<span style="color:var(--green)">● Key saved</span> — the 🤖 button appears in the bottom-right corner'}
+  else{keyEl.value='';statusEl.innerHTML='<span style="color:var(--text3)">● No key set</span>'}
+  updateAIFab();
+}
+
+function applyCscartVisibility(){
+  const t=document.querySelector('#tab-stock table');
+  if(t){t.classList.toggle('cs-hidden',!!settings.hideCscart)}
 }
 
 function updateSetting(key,value){
@@ -567,7 +659,6 @@ function updateSetting(key,value){
   try{localStorage.setItem('kn_settings',JSON.stringify(settings))}catch(e){}
   toast(`Setting saved: ${key} = ${value}`);
   renderSettings();
-  // Re-render anything that depends on the setting
   if(mergedData.length)rebuildMerged();
   if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
   if(document.getElementById('tab-simulator').classList.contains('active')&&currentBoatId)renderBoatDetail();
@@ -726,6 +817,7 @@ function renderStockTable(){
   const badge=document.getElementById('alertBadge');const globalAct=mergedData.filter(r=>r.status==='A');const gac=globalAct.filter(r=>getUrgency(r)==='critical').length+globalAct.filter(r=>getUrgency(r)==='warning').length;badge.textContent=gac;badge.style.display=gac>0?'inline':'none';
   document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td class="col-cs">${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td class="col-cs">${dH}</td><td><div style="display:flex;align-items:center;gap:8px">${r.avg||'—'}${renderSparkline(r.code)}</div></td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
   document.getElementById('stockCount').textContent=`Showing ${filtered.length} of ${mergedData.length}`;
+  applyCscartVisibility();
 }
 function doSort(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true}renderStockTable()}
 
@@ -745,11 +837,6 @@ function renderSparkline(code){
   const lastY=h-(latest/max)*(h-2)+1;
   const tip=data.map(d=>`${d.period}: ${d.qty}`).join(' · ');
   return`<svg width="60" height="20" viewBox="0 0 60 20" style="vertical-align:middle;flex-shrink:0"><title>${tip}</title><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${w.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2" fill="${color}"/></svg>`;
-}
-function toggleCSColumns(){
-  const t=document.getElementById('stockTable')||document.querySelector('#tab-stock table');
-  const btn=document.getElementById('btnToggleCS');
-  if(t){t.classList.toggle('cs-hidden');btn.textContent=t.classList.contains('cs-hidden')?'Show Cscart':'Hide Cscart'}
 }
 
 // ═══════════════════════════════════════════════
@@ -788,14 +875,53 @@ function initSalesDash(){
   document.getElementById('salesEmpty').style.display='none';document.getElementById('salesDash').style.display='block';
   document.getElementById('periodTags').innerHTML=salesPeriods.map(p=>`<span class="period-tag">${p}<span class="del" onclick="removePeriod('${p}')">×</span></span>`).join('');
   const allSkus={};salesPeriods.forEach(p=>{(salesHistory[p]||[]).forEach(r=>{if(!allSkus[r.item_code])allSkus[r.item_code]={item_code:r.item_code,description:r.description};if(!allSkus[r.item_code].description&&r.description)allSkus[r.item_code].description=r.description;allSkus[r.item_code]['q_'+p]=r.quantity;allSkus[r.item_code]['s_'+p]=r.sales_amount})});
-  window._sm=Object.values(allSkus);window._sp=salesPeriods;renderSalesTable();renderTopChart();
+  // Enrich with master data
+  Object.values(allSkus).forEach(r=>{const m=masterItems[r.item_code]||{};r.supplier=m.supplier||'';r.item_group=m.group||''});
+  window._sm=Object.values(allSkus);window._sp=salesPeriods;
+  // Populate filter dropdowns
+  const sups=[...new Set(window._sm.map(r=>r.supplier))].filter(Boolean).sort();
+  const grps=[...new Set(window._sm.map(r=>r.item_group))].filter(Boolean).sort();
+  const supSel=document.getElementById('salesSupplier'),grpSel=document.getElementById('salesGroup');
+  const curSup=supSel.value,curGrp=grpSel.value;
+  supSel.innerHTML='<option value="">All ('+sups.length+')</option>'+sups.map(s=>`<option value="${esc(s)}" ${s===curSup?'selected':''}>${esc(s)}</option>`).join('');
+  grpSel.innerHTML='<option value="">All ('+grps.length+')</option>'+grps.map(g=>`<option value="${esc(g)}" ${g===curGrp?'selected':''}>${esc(g)}</option>`).join('');
+  renderSalesTable();renderTopChart();
 }
-function renderSalesTable(){const P=window._sp||[];let data=[...(window._sm||[])];const search=(document.getElementById('salesSearch').value||'').toLowerCase(),sort=document.getElementById('salesSort').value;if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));const lat=P[P.length-1];
+function renderSalesTable(){const P=window._sp||[];let data=[...(window._sm||[])];const search=(document.getElementById('salesSearch').value||'').toLowerCase(),sort=document.getElementById('salesSort').value,supF=document.getElementById('salesSupplier').value,grpF=document.getElementById('salesGroup').value;
+  if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(supF)data=data.filter(r=>r.supplier===supF);
+  if(grpF)data=data.filter(r=>r.item_group===grpF);
+  const lat=P[P.length-1];
   data=data.map(r=>{r._lq=r['q_'+lat]||0;const rec=P.slice(-3);let s=0;rec.forEach(p=>{s+=(r['q_'+p]||0)});r._a3=rec.length>0?Math.round(s/rec.length*10)/10:0;r._g=r._a3>0?((r._lq-r._a3)/r._a3*100):0;return r});if(sort==='latest_desc')data.sort((a,b)=>b._lq-a._lq);else if(sort==='latest_asc')data.sort((a,b)=>a._lq-b._lq);else if(sort==='growth')data.sort((a,b)=>b._g-a._g);else data.sort((a,b)=>a._g-b._g);
   document.getElementById('salesHead').innerHTML='<th>Code</th><th style="min-width:180px">Description</th>'+P.map(p=>`<th>${p}</th>`).join('')+'<th>3mo Avg</th><th>vs Avg</th>';
   document.getElementById('salesBody').innerHTML=data.slice(0,200).map(r=>{const g=r._g,gh=`<td style="color:${g>0?'var(--green)':g<0?'var(--red)':'var(--text3)'};font-weight:500">${r._a3>0?(g>0?'+':'')+g.toFixed(0)+'%':'—'}</td>`;return`<tr class="clickable-row" onclick="showTrend('${r.item_code}','${esc(r.description||'')}')"><td>${r.item_code}</td><td style="font-family:var(--font)">${esc(r.description||'')}</td>${P.map(p=>`<td>${r['q_'+p]||0}</td>`).join('')}<td style="color:var(--cyan);font-weight:500">${r._a3}</td>${gh}</tr>`}).join('')}
 function renderTopChart(){const P=window._sp||[];if(!P.length)return;const lat=P[P.length-1],d=(window._sm||[]).map(r=>({l:r.item_code,q:r['q_'+lat]||0})).filter(r=>r.q>0).sort((a,b)=>b.q-a.q).slice(0,20);if(topCI)topCI.destroy();topCI=new Chart(document.getElementById('topChart'),{type:'bar',data:{labels:d.map(r=>r.l),datasets:[{data:d.map(r=>r.q),backgroundColor:'rgba(59,130,246,.7)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{display:false},ticks:{color:'#c8d0dc',font:{family:'IBM Plex Mono',size:10}}}}}})}
 function showTrend(code,desc){const P=window._sp||[];const item=(window._sm||[]).find(r=>r.item_code===code);if(!item)return;document.getElementById('trendTitle').textContent=`${code} — ${desc}`;if(trendCI)trendCI.destroy();trendCI=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:P,datasets:[{data:P.map(p=>item['q_'+p]||0),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.15)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#3b82f6'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}}}}});document.querySelectorAll('.clickable-row').forEach(r=>{r.classList.toggle('highlight-row',r.cells[0].textContent===code)})}
+
+function exportSalesCSV(){
+  const P=window._sp||[];if(!P.length){toast('No sales data to export','error');return}
+  let data=[...(window._sm||[])];
+  const search=(document.getElementById('salesSearch').value||'').toLowerCase(),supF=document.getElementById('salesSupplier').value,grpF=document.getElementById('salesGroup').value;
+  if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(supF)data=data.filter(r=>r.supplier===supF);
+  if(grpF)data=data.filter(r=>r.item_group===grpF);
+  // Build CSV
+  const headers=['Code','Description','Supplier','Group',...P.map(p=>'Qty_'+p),'3mo_Avg','vs_Avg_pct'];
+  const rows=data.map(r=>{
+    const rec=P.slice(-3);let s=0;rec.forEach(p=>{s+=(r['q_'+p]||0)});
+    const a3=rec.length>0?Math.round(s/rec.length*10)/10:0;
+    const lq=r['q_'+P[P.length-1]]||0;
+    const g=a3>0?Math.round((lq-a3)/a3*100):0;
+    return[r.item_code,r.description||'',r.supplier||'',r.item_group||'',...P.map(p=>r['q_'+p]||0),a3,g];
+  });
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='kenners_sales_export_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} products`);
+}
 
 // ═══════════════════════════════════════════════
 // SUPPLIERS
@@ -1264,6 +1390,221 @@ function exportBoatCSV(){
   const a=document.createElement('a');
   a.href=url;a.download=(b.name||'boat').replace(/[^a-z0-9]/gi,'_')+'.csv';
   a.click();URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+// AI ASSISTANT
+// ═══════════════════════════════════════════════
+let aiHistory=[];
+
+function saveApiKey(){
+  const key=document.getElementById('settingApiKey').value.trim();
+  if(!key||!key.startsWith('sk-')){toast('Invalid API key — should start with sk-','error');return}
+  try{localStorage.setItem('kn_api_key',key)}catch(e){}
+  toast('API key saved');renderSettings();updateAIFab();
+}
+function clearApiKey(){
+  try{localStorage.removeItem('kn_api_key')}catch(e){}
+  document.getElementById('settingApiKey').value='';
+  toast('API key cleared');renderSettings();updateAIFab();
+}
+function getApiKey(){try{return localStorage.getItem('kn_api_key')||''}catch(e){return''}}
+function updateAIFab(){document.getElementById('aiFab').classList.toggle('has-key',!!getApiKey())}
+
+function toggleAIPanel(){
+  const p=document.getElementById('aiPanel');
+  p.classList.toggle('open');
+}
+
+function buildDataContext(){
+  const lines=[];
+  // Stock overview
+  const act=mergedData.filter(r=>r.status==='A');
+  const crit=act.filter(r=>getUrgency(r)==='critical');
+  const warn=act.filter(r=>getUrgency(r)==='warning');
+  const low=act.filter(r=>getUrgency(r)==='low');
+  lines.push(`STOCK OVERVIEW: ${act.length} active products, ${crit.length} out of stock, ${warn.length} critical (<1mo), ${low.length} low (<2mo)`);
+
+  // Top critical products
+  if(crit.length){
+    lines.push('\nTOP OUT-OF-STOCK (active, sorted by avg sales):');
+    lines.push('code | description | supplier | group | exact_stock | avg_mo');
+    crit.sort((a,b)=>(b.avg||0)-(a.avg||0)).slice(0,20).forEach(r=>{
+      lines.push(`${r.code} | ${r.description||''} | ${r.supplier||''} | ${r.group||''} | ${r.exact??'?'} | ${r.avg}`);
+    });
+  }
+  if(warn.length){
+    lines.push('\nCRITICAL <1 MONTH (top 15 by avg):');
+    lines.push('code | description | supplier | group | exact_stock | avg_mo | months_left');
+    warn.sort((a,b)=>(b.avg||0)-(a.avg||0)).slice(0,15).forEach(r=>{
+      lines.push(`${r.code} | ${r.description||''} | ${r.supplier||''} | ${r.group||''} | ${r.exact??'?'} | ${r.avg} | ${r.monthsLeft}`);
+    });
+  }
+
+  // Sales summary
+  if(salesPeriods.length){
+    const P=salesPeriods;
+    lines.push(`\nSALES: ${P.length} months loaded (${P[0]} to ${P[P.length-1]})`);
+    const sm=window._sm||[];
+    if(sm.length){
+      const lat=P[P.length-1];
+      const top=sm.map(r=>({c:r.item_code,d:r.description,s:r.supplier,g:r.item_group,q:r['q_'+lat]||0})).filter(r=>r.q>0).sort((a,b)=>b.q-a.q).slice(0,15);
+      lines.push(`\nTOP 15 SELLERS (${lat}):`);
+      lines.push('code | description | supplier | group | qty_latest');
+      top.forEach(r=>lines.push(`${r.c} | ${r.d} | ${r.s} | ${r.g} | ${r.q}`));
+
+      // Biggest declines
+      const declines=sm.map(r=>{
+        const lq=r['q_'+lat]||0;
+        const prior=P.slice(0,-1).map(p=>r['q_'+p]||0).sort((a,b)=>a-b);
+        const med=prior.length%2?prior[Math.floor(prior.length/2)]:(prior[Math.floor(prior.length/2)-1]+prior[Math.floor(prior.length/2)])/2;
+        return{c:r.item_code,d:r.description,s:r.supplier,latest:lq,median:med,pct:med>0?Math.round((lq-med)/med*100):0};
+      }).filter(r=>r.pct<-30&&r.median>5).sort((a,b)=>a.pct-b.pct).slice(0,10);
+      if(declines.length){
+        lines.push('\nBIGGEST DECLINES (latest vs median, >30% drop):');
+        lines.push('code | description | supplier | latest | median | vs_median');
+        declines.forEach(r=>lines.push(`${r.c} | ${r.d} | ${r.s} | ${r.latest} | ${r.median} | ${r.pct}%`));
+      }
+    }
+  }
+
+  // China summary
+  const chinaCodes=Object.keys(chinaProducts);
+  if(chinaCodes.length){
+    lines.push(`\nCHINA PRODUCTS: ${chinaCodes.length} total`);
+    const infos=chinaCodes.map(c=>getStockoutInfo(c)).filter(Boolean);
+    const urgent=infos.filter(r=>r.orderByDate&&r.orderByDate<new Date());
+    const soon=infos.filter(r=>r.orderByDate&&r.orderByDate>=new Date()&&r.orderByDate<addMonths(new Date(),1));
+    lines.push(`Order overdue: ${urgent.length}, Order within 30d: ${soon.length}`);
+    const needOrder=[...urgent,...soon].sort((a,b)=>(a.stockoutDate?a.stockoutDate.getTime():9e15)-(b.stockoutDate?b.stockoutDate.getTime():9e15)).slice(0,20);
+    if(needOrder.length){
+      lines.push('\nURGENT CHINA ORDERS:');
+      lines.push('code | description | supplier | group | stock | avg_mo | suggested_qty_6mo | stockout');
+      needOrder.forEach(r=>{
+        const sug=getSuggestedQty(r);
+        lines.push(`${r.code} | ${r.description} | ${r.supplier} | ${r.group} | ${r.currentStock} | ${r.avg} | ${sug.qty??'?'} | ${r.stockoutDate?fmtDate(r.stockoutDate):'?'}`);
+      });
+    }
+  }
+
+  // Boats
+  const boats=Object.values(savedBoats);
+  if(boats.length){
+    lines.push('\nACTIVE BOATS:');
+    boats.forEach(b=>{
+      const pos=Object.values(b.orders);
+      let items=0,units=0;
+      pos.forEach(po=>{items+=Object.keys(po.items).length;Object.values(po.items).forEach(it=>units+=it.qty)});
+      lines.push(`${b.name}: arrival ${b.arrival_date||'?'}, ${pos.length} POs, ${items} products, ${units} units`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
+const AI_SYSTEM=`You are a purchasing assistant for Kenners, a Dutch e-commerce company selling kitchen appliances, drones, and accessories. You are integrated into their purchasing dashboard.
+
+Guidelines:
+- Be concise and actionable. Use tables when comparing products.
+- When suggesting order quantities, consider the suggested_qty_6mo column (based on 6-month coverage target minus current stock).
+- China products have ~120 day lead time. Non-China suppliers are faster.
+- The main stock source is Exact (not Cscart). Months Left = Exact stock / 3-month avg sales.
+- Flag unusual patterns: sudden sales drops, products with high avg but zero stock, etc.
+- When drafting POs, group products by supplier and show: code, description, suggested qty, and reasoning.
+- Respond in the same language as the user (Portuguese or English).`;
+
+const QUICK_PROMPTS={
+  stock:'Give me a brief overview of my current stock situation. How many products are critical? Which suppliers have the most problems? What should I prioritize today?',
+  urgent:'List the most urgent products I need to order right now. Group them by supplier, show the suggested quantities, and explain why they are urgent.',
+  trends:'Analyze my recent sales trends. Which products are growing? Which are declining? Any seasonal patterns or anomalies I should know about?',
+  po:'Based on my current stock levels and China product data, draft a purchase order for the most urgent China products. Group by supplier, include suggested quantities, and estimate the total cost.',
+  budget:'If I have a budget of €10,000 for my next China order, how should I allocate it? Prioritize by urgency (products running out soonest) and sales volume.'
+};
+
+function aiQuick(key){
+  const msg=QUICK_PROMPTS[key];
+  if(msg){document.getElementById('aiInput').value=msg;sendAI()}
+}
+
+async function sendAI(){
+  const input=document.getElementById('aiInput');
+  const msg=input.value.trim();if(!msg)return;
+  const key=getApiKey();
+  if(!key){toast('Set your API key in Settings first','error');return}
+
+  // Add user message
+  aiHistory.push({role:'user',content:msg});
+  input.value='';
+  renderAIMessages();
+
+  // Show typing
+  document.getElementById('aiTyping').style.display='block';
+  document.getElementById('aiSendBtn').disabled=true;
+
+  try{
+    // Build context for first message or refresh periodically
+    const context=buildDataContext();
+    const messages=[];
+    // Always send context as first user message for freshness
+    if(aiHistory.length===1){
+      messages.push({role:'user',content:`Here is my current dashboard data:\n\n${context}\n\n${msg}`});
+    }else{
+      // Send context + conversation history
+      messages.push({role:'user',content:`[Dashboard data update]\n${context}`});
+      messages.push({role:'assistant',content:'I have your latest dashboard data. How can I help?'});
+      // Add last 10 messages to keep context manageable
+      aiHistory.slice(-10).forEach(m=>messages.push({role:m.role,content:m.content}));
+    }
+
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:2048,
+        system:AI_SYSTEM,
+        messages
+      })
+    });
+
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      throw new Error(err.error?.message||`API error ${resp.status}`);
+    }
+
+    const data=await resp.json();
+    const reply=data.content.map(c=>c.text||'').join('\n').trim();
+    aiHistory.push({role:'assistant',content:reply});
+  }catch(err){
+    aiHistory.push({role:'assistant',content:`⚠ Error: ${err.message}`});
+  }finally{
+    document.getElementById('aiTyping').style.display='none';
+    document.getElementById('aiSendBtn').disabled=false;
+    renderAIMessages();
+  }
+}
+
+function renderAIMessages(){
+  const el=document.getElementById('aiMessages');
+  el.innerHTML='<div class="ai-msg system">Ask me about your stock, sales trends, or purchasing decisions. I can see all your dashboard data.</div>'+
+    aiHistory.map(m=>`<div class="ai-msg ${m.role}"><div class="ai-bubble">${m.role==='user'?esc(m.content):formatAIResponse(m.content)}</div></div>`).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function formatAIResponse(text){
+  // Basic markdown-like formatting
+  return esc(text)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>')
+    .replace(/^### (.+)$/gm,'<div style="font-size:13px;font-weight:600;color:#fff;margin:10px 0 4px">$1</div>')
+    .replace(/^## (.+)$/gm,'<div style="font-size:14px;font-weight:600;color:#fff;margin:12px 0 6px">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="padding-left:12px">• $1</div>')
+    .replace(/\n/g,'<br>');
 }
 </script>
 </body>
