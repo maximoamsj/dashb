@@ -1438,244 +1438,180 @@ function toggleAIPanel(){
   p.classList.toggle('open');
 }
 
-function buildDataContext(userMsg=''){
-  const lines=[];
-  const msgLower=(userMsg||'').toLowerCase();
-
-  // Detect if user is asking about a specific supplier or group
-  const sm=window._sm||[];
-  const allSuppliers=[...new Set(sm.map(r=>r.supplier))].filter(Boolean);
-  const allGroups=[...new Set(sm.map(r=>r.item_group))].filter(Boolean);
-
-  // Fuzzy match: partial word matching (type "rommels" to match "Rommelsbacher ElektroHausgeräte GmbH")
-  function fuzzyFind(list,msg){
-    // 1. Exact full-name substring match
-    let match=list.find(s=>msg.includes(s.toLowerCase()));
-    if(match)return match;
-    // 2. Word-level: any user word (4+ chars) matches start of any word in supplier/group name
-    const userWords=msg.split(/[\s,.:!?]+/).filter(w=>w.length>=4);
-    let bestMatch=null,bestLen=0;
-    for(const item of list){
-      const itemWords=item.toLowerCase().split(/[\s]+/).filter(w=>w.length>=3);
-      for(const uw of userWords){
-        for(const iw of itemWords){
-          // "rommels" matches "rommelsbacher" (supplier word starts with user word)
-          // "rommelsbacher" matches "rommels" (user word starts with supplier word, if supplier word is 4+ chars)
-          if(iw.startsWith(uw)||uw.startsWith(iw)){
-            const matchLen=Math.min(uw.length,iw.length);
-            if(matchLen>bestLen){bestLen=matchLen;bestMatch=item}
-          }
-        }
-      }
-    }
-    return bestMatch;
-  }
-
-  const matchedSup=fuzzyFind(allSuppliers,msgLower);
-  const matchedGrp=fuzzyFind(allGroups,msgLower);
-  const fullMode=msgLower.includes('full catalog')||msgLower.includes('all products')||msgLower.includes('everything')||msgLower.includes('todos os produtos')||msgLower.includes('catálogo completo');
-
-  // Always include available suppliers and groups so AI can suggest corrections
-  lines.push('AVAILABLE SUPPLIERS: '+allSuppliers.join(', '));
-  lines.push('AVAILABLE ITEM GROUPS: '+allGroups.join(', '));
-  if(matchedSup)lines.push(`\n>> FILTERED BY SUPPLIER: ${matchedSup}`);
-  if(matchedGrp)lines.push(`\n>> FILTERED BY GROUP: ${matchedGrp}`);
-
-  // Stock overview
-  const act=mergedData.filter(r=>r.status==='A');
-  const crit=act.filter(r=>getUrgency(r)==='critical');
-  const warn=act.filter(r=>getUrgency(r)==='warning');
-  const low=act.filter(r=>getUrgency(r)==='low');
-  lines.push(`STOCK OVERVIEW: ${act.length} active products, ${crit.length} out of stock, ${warn.length} critical (<1mo), ${low.length} low (<2mo)`);
-
-  // Top critical products
-  if(crit.length){
-    lines.push('\nTOP OUT-OF-STOCK (active, sorted by avg sales):');
-    lines.push('code | description | supplier | group | exact_stock | avg_mo');
-    crit.sort((a,b)=>(b.avg||0)-(a.avg||0)).slice(0,20).forEach(r=>{
-      lines.push(`${r.code} | ${r.description||''} | ${r.supplier||''} | ${r.group||''} | ${r.exact??'?'} | ${r.avg}`);
-    });
-  }
-  if(warn.length){
-    lines.push('\nCRITICAL <1 MONTH (top 15 by avg):');
-    lines.push('code | description | supplier | group | exact_stock | avg_mo | months_left');
-    warn.sort((a,b)=>(b.avg||0)-(a.avg||0)).slice(0,15).forEach(r=>{
-      lines.push(`${r.code} | ${r.description||''} | ${r.supplier||''} | ${r.group||''} | ${r.exact??'?'} | ${r.avg} | ${r.monthsLeft}`);
-    });
-  }
-
-  // Sales summary
-  if(salesPeriods.length){
-    const P=salesPeriods;
-    lines.push(`\nSALES: ${P.length} months loaded (${P[0]} to ${P[P.length-1]})`);
-    if(sm.length){
-      const lat=P[P.length-1];
-
-      // Determine which products to include based on user's question
-      let salesSubset;
-      let subsetLabel;
-      if(matchedSup){
-        salesSubset=sm.filter(r=>r.supplier===matchedSup);
-        subsetLabel=`ALL ${salesSubset.length} products for supplier "${matchedSup}"`;
-      }else if(matchedGrp){
-        salesSubset=sm.filter(r=>r.item_group===matchedGrp);
-        subsetLabel=`ALL ${salesSubset.length} products in group "${matchedGrp}"`;
-      }else if(fullMode){
-        salesSubset=sm.filter(r=>{let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));return tot>0});
-        subsetLabel=`ALL ${salesSubset.length} products with sales`;
-      }else{
-        salesSubset=sm.map(r=>{let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));return{...r,_tot:tot}}).filter(r=>r._tot>0).sort((a,b)=>b._tot-a._tot).slice(0,40);
-        subsetLabel=`top 40 by volume`;
-      }
-
-      // Add totals for sorting
-      salesSubset=salesSubset.map(r=>{if(r._tot===undefined){let tot=0;P.forEach(p=>tot+=(r['q_'+p]||0));r._tot=tot}return r}).sort((a,b)=>b._tot-a._tot);
-
-      lines.push(`\nMONTHLY SALES (${subsetLabel}):`);
-      lines.push('code | description | supplier | group | '+P.join(' | ')+' | total');
-      salesSubset.forEach(r=>{
-        lines.push(`${r.item_code} | ${r.description||''} | ${r.supplier||''} | ${r.item_group||''} | ${P.map(p=>r['q_'+p]||0).join(' | ')} | ${r._tot}`);
-      });
-
-      // Biggest declines (always include)
-      const declines=sm.map(r=>{
-        const lq=r['q_'+lat]||0;
-        const prior=P.slice(0,-1).map(p=>r['q_'+p]||0).sort((a,b)=>a-b);
-        const med=prior.length%2?prior[Math.floor(prior.length/2)]:(prior[Math.floor(prior.length/2)-1]+prior[Math.floor(prior.length/2)])/2;
-        return{c:r.item_code,d:r.description,s:r.supplier,latest:lq,median:med,pct:med>0?Math.round((lq-med)/med*100):0};
-      }).filter(r=>r.pct<-30&&r.median>5).sort((a,b)=>a.pct-b.pct).slice(0,10);
-      if(declines.length){
-        lines.push('\nBIGGEST DECLINES (latest vs median, >30% drop):');
-        lines.push('code | description | supplier | latest | median | vs_median');
-        declines.forEach(r=>lines.push(`${r.c} | ${r.d} | ${r.s} | ${r.latest} | ${r.median} | ${r.pct}%`));
-      }
+// ═══════════════════════════════════════════════
+// AI DATA TOOLS (function calling)
+// ═══════════════════════════════════════════════
+function supplierGroupFor(name){
+  // Returns all supplier names sharing the first word of the fuzzy-matched supplier
+  const all=[...new Set(mergedData.map(r=>r.supplier))].filter(Boolean);
+  const matched=fuzzyFindSimple(all,(name||'').toLowerCase());
+  if(!matched)return null;
+  const fw=matched.toLowerCase().split(/\s+/)[0];
+  return{matched,names:all.filter(s=>s.toLowerCase().split(/\s+/)[0]===fw)};
+}
+function fuzzyFindSimple(list,msg){
+  let m=list.find(s=>msg.includes(s.toLowerCase()));
+  if(m)return m;
+  const words=msg.split(/[\s,.:!?]+/).filter(w=>w.length>=4);
+  let best=null,bestLen=0;
+  for(const item of list){
+    const iws=item.toLowerCase().split(/\s+/).filter(w=>w.length>=3);
+    for(const uw of words)for(const iw of iws){
+      if(iw.startsWith(uw)||uw.startsWith(iw)){const l=Math.min(uw.length,iw.length);if(l>bestLen){bestLen=l;best=item}}
     }
   }
-
-  // China summary
-  const chinaCodes=Object.keys(chinaProducts);
-  if(chinaCodes.length){
-    lines.push(`\nCHINA PRODUCTS: ${chinaCodes.length} total`);
-    const infos=chinaCodes.map(c=>getStockoutInfo(c)).filter(Boolean);
-    const urgent=infos.filter(r=>r.orderByDate&&r.orderByDate<new Date());
-    const soon=infos.filter(r=>r.orderByDate&&r.orderByDate>=new Date()&&r.orderByDate<addMonths(new Date(),1));
-    lines.push(`Order overdue: ${urgent.length}, Order within 30d: ${soon.length}`);
-    const needOrder=[...urgent,...soon].sort((a,b)=>(a.stockoutDate?a.stockoutDate.getTime():9e15)-(b.stockoutDate?b.stockoutDate.getTime():9e15)).slice(0,20);
-    if(needOrder.length){
-      lines.push('\nURGENT CHINA ORDERS:');
-      lines.push('code | description | supplier | group | stock | avg_mo | suggested_qty_6mo | stockout');
-      needOrder.forEach(r=>{
-        const sug=getSuggestedQty(r);
-        lines.push(`${r.code} | ${r.description} | ${r.supplier} | ${r.group} | ${r.currentStock} | ${r.avg} | ${sug.qty??'?'} | ${r.stockoutDate?fmtDate(r.stockoutDate):'?'}`);
-      });
-    }
-  }
-
-  // Boats
-  const boats=Object.values(savedBoats);
-  if(boats.length){
-    lines.push('\nACTIVE BOATS:');
-    boats.forEach(b=>{
-      const pos=Object.values(b.orders);
-      let items=0,units=0;
-      pos.forEach(po=>{items+=Object.keys(po.items).length;Object.values(po.items).forEach(it=>units+=it.qty)});
-      lines.push(`${b.name}: arrival ${b.arrival_date||'?'}, ${pos.length} POs, ${items} products, ${units} units`);
-    });
-  }
-
-  return lines.join('\n');
+  return best;
 }
 
-const AI_SYSTEM=`You are a purchasing assistant for Kenners, a Dutch e-commerce company selling kitchen appliances, drones, and accessories. You are integrated into their purchasing dashboard.
+function buildOverviewString(){
+  const act=mergedData.filter(r=>r.status==='A');
+  const crit=act.filter(r=>getUrgency(r)==='critical').length;
+  const warn=act.filter(r=>getUrgency(r)==='warning').length;
+  const low=act.filter(r=>getUrgency(r)==='low').length;
+  const sm=window._sm||[],P=window._sp||[];
+  const suppliers=[...new Set(sm.map(r=>r.supplier))].filter(Boolean).sort();
+  const groups=[...new Set(sm.map(r=>r.item_group))].filter(Boolean).sort();
+  return `CURRENT DASHBOARD STATE:
+- ${act.length} active products: ${crit} out of stock, ${warn} critical (<1mo), ${low} low (<2mo)
+- Sales data: ${P.length} months (${P[0]||'none'} to ${P[P.length-1]||'none'})
+- China products: ${Object.keys(chinaProducts).length} | Boats: ${Object.keys(savedBoats).length}
+- Suppliers (${suppliers.length}): ${suppliers.join(', ')}
+- Item groups (${groups.length}): ${groups.join(', ')}`;
+}
 
-Guidelines:
-- Be concise and actionable. Use tables when comparing products.
-- When suggesting order quantities, consider the suggested_qty_6mo column (based on 6-month coverage target minus current stock).
-- China products have ~120 day lead time. Non-China suppliers are faster.
-- The main stock source is Exact (not Cscart). Months Left = Exact stock / 3-month avg sales.
-- Flag unusual patterns: sudden sales drops, products with high avg but zero stock, etc.
-- When drafting POs, group products by supplier and show: code, description, suggested qty, and reasoning.
-- Respond in the same language as the user (Portuguese or English).
-- The data includes a list of AVAILABLE SUPPLIERS and ITEM GROUPS. If the user asks about a supplier or group that doesn't exactly match but is close (typo), suggest the correct name from the list. If the data says "FILTERED BY SUPPLIER/GROUP", you have the full monthly breakdown for that specific slice.
-- If the user asks about a supplier/group but the data only shows "top 40 by volume", it means the name wasn't recognized. Tell the user the correct name from the available list so they can ask again.`;
+const AI_TOOLS=[
+  {name:'query_products',description:'Query products with flexible filters. Returns stock, 3-month avg sales, months left, China status, and (by default) full monthly sales history. This is your main tool — use it for any question about specific products, suppliers, or groups. Supplier matching is fuzzy (e.g. "rommels" matches "Rommelsbacher ElektroHausgeräte GmbH") and automatically includes name variants.',
+    input_schema:{type:'object',properties:{
+      supplier:{type:'string',description:'Filter by supplier (partial match, e.g. "rommels")'},
+      group:{type:'string',description:'Filter by exact item group name'},
+      codes:{type:'array',items:{type:'string'},description:'Specific product codes to fetch'},
+      search:{type:'string',description:'Text search in code or description'},
+      urgency:{type:'string',enum:['critical','warning','low','ok'],description:'critical=out of stock(<=0), warning=<1mo, low=<2mo, ok=2+mo'},
+      china_only:{type:'boolean',description:'Only China-flagged products'},
+      include_monthly_sales:{type:'boolean',description:'Include month-by-month sales (default true). Set false when you only need current stock to save space.'}
+    },required:[]}},
+  {name:'get_china_planning',description:'Get China products needing reorder, with suggested order quantities (coverage-target based), stockout dates and order-by dates. Optionally filter by supplier/group.',
+    input_schema:{type:'object',properties:{supplier:{type:'string'},group:{type:'string'}},required:[]}},
+  {name:'get_boats',description:'Get all saved boats (containers) with their purchase orders, products, quantities, currencies, exchange rates and totals.',
+    input_schema:{type:'object',properties:{},required:[]}}
+];
+
+function execTool(name,input){
+  try{
+    if(name==='query_products')return toolQueryProducts(input||{});
+    if(name==='get_china_planning')return toolChinaPlanning(input||{});
+    if(name==='get_boats')return toolBoats();
+    return{error:'Unknown tool: '+name};
+  }catch(e){return{error:e.message}}
+}
+
+function toolQueryProducts(input){
+  const P=window._sp||[],sm=window._sm||[];
+  const includeMonthly=input.include_monthly_sales!==false;
+  let results=mergedData.slice();
+  let supplierNote='';
+  if(input.supplier){
+    const sg=supplierGroupFor(input.supplier);
+    if(sg){results=results.filter(r=>sg.names.includes(r.supplier));supplierNote=sg.matched}
+    else results=results.filter(r=>(r.supplier||'').toLowerCase().includes(input.supplier.toLowerCase()));
+  }
+  if(input.group)results=results.filter(r=>(r.group||'').toLowerCase()===input.group.toLowerCase());
+  if(input.codes&&input.codes.length){const set=new Set(input.codes.map(c=>String(c)));results=results.filter(r=>set.has(r.code))}
+  if(input.search){const q=input.search.toLowerCase();results=results.filter(r=>r.code.toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q))}
+  if(input.urgency)results=results.filter(r=>getUrgency(r)===input.urgency);
+  if(input.china_only)results=results.filter(r=>chinaProducts[r.code]);
+  const total=results.length;
+  const limited=results.slice(0,250);
+  const products=limited.map(r=>{
+    const o={code:r.code,description:r.description||'',supplier:r.supplier||'',group:r.group||'',status:r.status,exact_stock:r.exact,avg_mo:r.avg,months_left:r.monthsLeft<0?null:r.monthsLeft,is_china:!!chinaProducts[r.code]};
+    if(includeMonthly){const sr=sm.find(s=>s.item_code===r.code);o.monthly_sales=sr?P.map(p=>sr['q_'+p]||0):null;if(sr)o.sales_months=P}
+    return o;
+  });
+  return{count:total,returned:products.length,truncated:total>250,matched_supplier:supplierNote||undefined,products};
+}
+
+function toolChinaPlanning(input){
+  let infos=Object.keys(chinaProducts).map(c=>getStockoutInfo(c)).filter(Boolean);
+  if(input.supplier){const sg=supplierGroupFor(input.supplier);if(sg)infos=infos.filter(r=>sg.names.includes(r.supplier))}
+  if(input.group)infos=infos.filter(r=>(r.group||'').toLowerCase()===input.group.toLowerCase());
+  const products=infos.map(r=>{const sug=getSuggestedQty(r);return{code:r.code,description:r.description,supplier:r.supplier,group:r.group,current_stock:r.currentStock,avg_mo:r.avg,active_months:`${r.activeMo}/${r.totalMo}`,suggested_qty:sug.qty,lead_time_days:r.leadTime,stockout:r.stockoutDate?fmtDate(r.stockoutDate):null,order_by:r.orderByDate?fmtDate(r.orderByDate):null}});
+  return{coverage_months:chinaCoverage,count:products.length,products};
+}
+
+function toolBoats(){
+  return Object.values(savedBoats).map(b=>({name:b.name,arrival_date:b.arrival_date,notes:b.notes,
+    purchase_orders:Object.values(b.orders).map(po=>({name:po.name,supplier:po.supplier,currency:po.currency,exchange_rate:po.exchange_rate,
+      items:Object.keys(po.items).map(code=>({code,description:(masterItems[code]||{}).description||'',qty:po.items[code].qty,unit_price:po.items[code].price}))}))}));
+}
+
+const AI_SYSTEM=`You are a purchasing assistant for Kenners, a Dutch e-commerce company selling kitchen appliances, drones, and accessories, integrated into their purchasing dashboard.
+
+You have TOOLS to fetch live data. Always use them to get real numbers — never guess product codes or quantities. Call tools as needed, including multiple times, to fully answer a question.
+
+Key facts:
+- Main stock source is Exact (verschil-corrected). Months Left = Exact stock / 3-month avg sales.
+- Negative stock = backorders (customers waiting) — ALWAYS prioritize these in any order.
+- China products have ~120 day lead time. suggested_qty is based on the user's coverage target.
+- When drafting POs: group by supplier, show code, description, suggested qty, reasoning, and totals.
+- Be concise and use tables. Respond in the user's language (Portuguese or English).
+- A product with high avg_mo but low/zero/negative stock is an urgent reorder regardless of anything else.`;
 
 const QUICK_PROMPTS={
-  stock:'Give me a brief overview of my current stock situation. How many products are critical? Which suppliers have the most problems? What should I prioritize today?',
-  urgent:'List the most urgent products I need to order right now. Group them by supplier, show the suggested quantities, and explain why they are urgent.',
-  trends:'Analyze my recent sales trends. Which products are growing? Which are declining? Any seasonal patterns or anomalies I should know about?',
-  po:'Based on my current stock levels and China product data, draft a purchase order for the most urgent China products. Group by supplier, include suggested quantities, and estimate the total cost.',
-  budget:'If I have a budget of €10,000 for my next China order, how should I allocate it? Prioritize by urgency (products running out soonest) and sales volume.'
+  stock:'Give me an overview of my current stock situation. How many products are critical? Which suppliers have the most problems? What should I prioritize today?',
+  urgent:'List the most urgent products I need to order right now (out of stock or critical, especially backorders). Group by supplier and explain why each is urgent.',
+  trends:'Analyze my overall sales trends. Which products are growing, which are declining? Any seasonal patterns or anomalies?',
+  po:'Draft a purchase order for the most urgent China products. Group by supplier, include suggested quantities and reasoning, and estimate total cost.',
+  budget:'I have a budget of EUR 10,000 for my next China order. How should I allocate it? Prioritize by urgency (running out soonest) and sales volume.'
 };
-
-function aiQuick(key){
-  const msg=QUICK_PROMPTS[key];
-  if(msg){document.getElementById('aiInput').value=msg;sendAI()}
-}
+function aiQuick(key){const msg=QUICK_PROMPTS[key];if(msg){document.getElementById('aiInput').value=msg;sendAI()}}
 
 async function sendAI(){
   const input=document.getElementById('aiInput');
   const msg=input.value.trim();if(!msg)return;
   const key=getApiKey();
   if(!key){toast('Set your API key in Settings first','error');return}
-
-  // Add user message
   aiHistory.push({role:'user',content:msg});
-  input.value='';
-  renderAIMessages();
-
-  // Show typing
-  document.getElementById('aiTyping').style.display='block';
+  input.value='';renderAIMessages();
+  const typingEl=document.getElementById('aiTyping');
+  typingEl.style.display='block';typingEl.textContent='Claude is thinking...';
   document.getElementById('aiSendBtn').disabled=true;
 
   try{
-    const context=buildDataContext(msg);
     const customInst=getCustomInstructions();
-    const systemPrompt=AI_SYSTEM+(customInst?'\n\nUSER CUSTOM INSTRUCTIONS:\n'+customInst:'');
-    const messages=[];
-    if(aiHistory.length===1){
-      messages.push({role:'user',content:`Here is my current dashboard data:\n\n${context}\n\n${msg}`});
-    }else{
-      messages.push({role:'user',content:`[Dashboard data update]\n${context}`});
-      messages.push({role:'assistant',content:'I have your latest dashboard data. How can I help?'});
-      aiHistory.slice(-10).forEach(m=>messages.push({role:m.role,content:m.content}));
+    const systemPrompt=AI_SYSTEM+'\n\n'+buildOverviewString()+(customInst?'\n\nUSER CUSTOM INSTRUCTIONS:\n'+customInst:'');
+    // Rebuild API conversation from display history (text only), last 20 turns
+    let apiMessages=aiHistory.filter(m=>m.role==='user'||m.role==='assistant').slice(-20).map(m=>({role:m.role,content:m.content}));
+    let totalIn=0,totalOut=0,finalText='',guard=0;
+
+    while(guard++<8){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,system:systemPrompt,tools:AI_TOOLS,messages:apiMessages})
+      });
+      if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error ${resp.status}`)}
+      const data=await resp.json();
+      totalIn+=data.usage?.input_tokens||0;totalOut+=data.usage?.output_tokens||0;
+      apiMessages.push({role:'assistant',content:data.content});
+      const textBlocks=data.content.filter(c=>c.type==='text').map(c=>c.text);
+      if(textBlocks.length)finalText=textBlocks.join('\n');
+      const toolUses=data.content.filter(c=>c.type==='tool_use');
+      if(data.stop_reason!=='tool_use'||!toolUses.length)break;
+      typingEl.textContent='Claude is checking the data ('+toolUses.map(t=>t.name).join(', ')+')...';
+      const toolResults=toolUses.map(tu=>({type:'tool_result',tool_use_id:tu.id,content:JSON.stringify(execTool(tu.name,tu.input))}));
+      apiMessages.push({role:'user',content:toolResults});
     }
-
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:2048,
-        system:systemPrompt,
-        messages
-      })
-    });
-
-    if(!resp.ok){
-      const err=await resp.json().catch(()=>({}));
-      throw new Error(err.error?.message||`API error ${resp.status}`);
-    }
-
-    const data=await resp.json();
-    const reply=data.content.map(c=>c.text||'').join('\n').trim();
-    const usage=data.usage||{};
-    const costIn=(usage.input_tokens||0)/1e6*3;
-    const costOut=(usage.output_tokens||0)/1e6*15;
-    const costTotal=costIn+costOut;
-    aiHistory.push({role:'assistant',content:reply,tokens_in:usage.input_tokens||0,tokens_out:usage.output_tokens||0,cost:costTotal});
+    const costTotal=totalIn/1e6*3+totalOut/1e6*15;
+    aiHistory.push({role:'assistant',content:finalText||'(no text response)',tokens_in:totalIn,tokens_out:totalOut,cost:costTotal});
   }catch(err){
     aiHistory.push({role:'assistant',content:`⚠ Error: ${err.message}`});
   }finally{
-    document.getElementById('aiTyping').style.display='none';
+    typingEl.style.display='none';typingEl.textContent='Claude is thinking...';
     document.getElementById('aiSendBtn').disabled=false;
     renderAIMessages();
   }
 }
+
 
 function renderAIMessages(){
   const el=document.getElementById('aiMessages');
