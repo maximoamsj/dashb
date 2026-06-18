@@ -194,8 +194,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Monthly Sales</div>
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
-      <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Order Simulator</div>
-      <div class="nav-item" data-tab="drafts" onclick="switchTab('drafts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>PO Drafts</div>
+      <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Orders</div>
       <div class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
     <div class="sidebar-section">
@@ -287,7 +286,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
     <!-- ════════════ ORDER SIMULATOR ════════════ -->
     <div class="tab-content" id="tab-simulator">
       <div class="topbar">
-        <h2>Order Simulator</h2>
+        <h2>Orders</h2>
         <button class="btn btn-primary" onclick="newBoat()">+ New Boat</button>
         <button class="btn" onclick="exportBoatCSV()" id="btnExportBoat" style="display:none">Export CSV</button>
       </div>
@@ -324,14 +323,17 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 
             <!-- PO detail -->
             <div id="poDetail" style="display:none">
-              <div class="sim-header" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px">
-                <div class="filter-group"><label>PO Name</label><input type="text" id="poName" onchange="savePOMeta()" placeholder="e.g. PO 3346" style="min-width:120px"></div>
-                <div class="filter-group"><label>Supplier</label><input type="text" id="poSupplier" onchange="savePOMeta()" placeholder="Supplier name" style="min-width:180px"></div>
+              <div class="sim-header" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:12px;flex-wrap:wrap">
+                <div class="filter-group"><label>PO Name</label><input type="text" id="poName" onchange="savePOMeta()" placeholder="e.g. PO 3346" style="min-width:110px"></div>
+                <div class="filter-group"><label>Supplier</label><select id="poSupplier" onchange="savePOMeta()" style="min-width:220px"><option value="">— select —</option></select></div>
                 <div class="filter-group"><label>Currency</label>
-                  <select id="poCurrency" onchange="savePOMeta()"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option></select>
+                  <select id="poCurrency" onchange="savePOMeta()"><option value="USD">USD ($)</option><option value="EUR">EUR (€)</option><option value="CNY">CNY (¥)</option><option value="GBP">GBP (£)</option></select>
                 </div>
-                <div class="filter-group"><label>Rate → EUR</label><input type="number" id="poRate" step="0.01" min="0" onchange="savePOMeta()" style="width:80px" title="1 unit of this currency = X EUR"></div>
-                <button class="btn" style="color:var(--red);border-color:var(--red);margin-left:auto" onclick="deleteCurrentPO()">Delete PO</button>
+                <div class="filter-group"><label>Rate → EUR</label><input type="number" id="poRate" step="0.01" min="0" onchange="savePOMeta()" style="width:72px" title="1 unit of this currency = X EUR"></div>
+                <div class="filter-group"><label>Warehouse</label><input type="text" id="poWarehouse" onchange="savePOMeta()" placeholder="K" style="width:50px"></div>
+                <button class="btn" onclick="autofillPO()" title="Add all China products for this supplier with a suggested quantity" style="margin-left:auto">⚡ Auto-fill</button>
+                <button class="btn btn-primary" onclick="exportPOToExact()" title="Export this PO as an Exact-ready CSV">Export to Exact</button>
+                <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentPO()">Delete PO</button>
               </div>
 
               <!-- Product search -->
@@ -364,23 +366,6 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       </div>
     </div>
     <!-- ════════════ SETTINGS ════════════ -->
-    <!-- ════════════ PO DRAFTS ════════════ -->
-    <div class="tab-content" id="tab-drafts">
-      <div class="topbar"><h2>PO Drafts</h2><button class="btn btn-primary" onclick="newDraft()">+ New Draft</button></div>
-      <div class="content">
-        <div id="draftsEmpty" style="text-align:center;padding:60px 20px;color:var(--text3);display:none">
-          <p style="font-size:14px;margin-bottom:8px">No draft purchase orders yet.</p>
-          <p style="font-size:12px">Click <strong>+ New Draft</strong> to start, set a supplier, then auto-fill from China suggestions or add items manually. Export as an Exact-ready CSV.</p>
-        </div>
-        <div id="draftsLayout" style="display:none;grid-template-columns:240px 1fr;gap:16px;height:calc(100vh - 130px)">
-          <div style="border-right:1px solid var(--border);overflow-y:auto;padding-right:12px">
-            <div id="draftsList"></div>
-          </div>
-          <div id="draftDetail" style="overflow-y:auto"></div>
-        </div>
-      </div>
-    </div>
-
     <!-- ════════════ SETTINGS ════════════ -->
     <div class="tab-content" id="tab-settings">
       <div class="topbar"><h2>Settings</h2></div>
@@ -657,7 +642,7 @@ async function loadOrdersFromDB(){
   const items=await fetchAll('china_order_items');
   savedBoats={};
   boats.forEach(b=>{savedBoats[b.id]={id:b.id,name:b.name,arrival_date:b.arrival_date,notes:b.notes||'',orders:{}}});
-  orders.forEach(o=>{if(savedBoats[o.boat_id])savedBoats[o.boat_id].orders[o.id]={id:o.id,name:o.name,supplier:o.supplier||'',currency:o.currency||'USD',exchange_rate:parseFloat(o.exchange_rate)||1,notes:o.notes||'',items:{}}});
+  orders.forEach(o=>{if(savedBoats[o.boat_id])savedBoats[o.boat_id].orders[o.id]={id:o.id,name:o.name,supplier:o.supplier||'',currency:o.currency||'USD',exchange_rate:parseFloat(o.exchange_rate)||1,warehouse:o.warehouse||'K',notes:o.notes||'',items:{}}});
   items.forEach(it=>{
     for(const bid of Object.keys(savedBoats)){
       const po=savedBoats[bid].orders[it.order_id];
@@ -757,7 +742,7 @@ function updateStatus(){
 // Refresh "X ago" labels every minute
 setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings();if(t==='drafts')renderDraftsTab()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings()}
 
 function renderSettings(){
   document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
@@ -1572,6 +1557,48 @@ async function deletePO(id){
 }
 async function deleteCurrentPO(){if(currentPOId)await deletePO(currentPOId)}
 
+// Auto-fill the current PO from China suggestions for its supplier
+async function autofillPO(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const po=b.orders[currentPOId];if(!po)return;
+  if(!po.supplier){toast('Set a supplier first','error');return}
+  if(!suppliersData[po.supplier]){toast('Pick a supplier from the list (needed for matching)','error');return}
+  let added=0;
+  for(const code of Object.keys(chinaProducts)){
+    const cost=getCost(code);if(!cost||cost.supplier_code!==po.supplier)continue;
+    const info=getStockoutInfo(code);if(!info)continue;
+    const sug=getSuggestedQty(info);if(!sug.qty||sug.qty<=0)continue;
+    if(!po.items[code]){po.items[code]={qty:sug.qty,price:cost.price||0};await sb.from('china_order_items').upsert({order_id:currentPOId,code,quantity:sug.qty,unit_price:cost.price||0});added++}
+  }
+  toast(added?`Added ${added} suggested items`:'No suggestions for this supplier');renderBoatDetail();
+}
+
+// Export the current PO as an Exact-ready CSV (one supplier = one PO)
+function exportPOToExact(){
+  const b=savedBoats[currentBoatId];if(!b)return;
+  const po=b.orders[currentPOId];if(!po)return;
+  if(!po.supplier){toast('Supplier required for export','error');return}
+  if(!Object.keys(po.items).length){toast('No items to export','error');return}
+  const supCode=po.supplier;
+  const od=b.arrival_date?null:new Date();
+  // Order date = today; receipt date = boat arrival if set, else order date + lead time
+  const orderDate=new Date();
+  let receiptDate;
+  if(b.arrival_date){const ad=new Date(b.arrival_date);receiptDate=isNaN(ad.getTime())?null:ad}
+  if(!receiptDate){const lt=leadTimeForSupplierCode(supCode);receiptDate=new Date(orderDate.getTime()+lt*86400000)}
+  const wh=po.warehouse||'K';
+  const rows=[];
+  rows.push(['Header','SupplierCode','WarehouseCode','Currency','OrderDate','ReceiptDate','ItemCode','Quantity','UnitPrice','VATCode']);
+  rows.push(['H',supCode,wh,po.currency,fmtExactDate(orderDate),fmtExactDate(receiptDate),'','','','']);
+  Object.keys(po.items).forEach(code=>{const it=po.items[code];rows.push(['','','',po.currency,'','',code,String(it.qty),it.price?String(it.price.toFixed(2)):'','9'])});
+  const csv=rows.map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='PO_'+supCode+'_'+(po.name||'').replace(/[^a-z0-9]/gi,'_')+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('Exported — import into Exact (recognise PO by column 1 = "H")');
+}
+
+
 async function savePOMeta(){
   if(!currentBoatId||!currentPOId)return;
   const po=savedBoats[currentBoatId].orders[currentPOId];if(!po)return;
@@ -1579,7 +1606,8 @@ async function savePOMeta(){
   po.supplier=document.getElementById('poSupplier').value.trim();
   po.currency=document.getElementById('poCurrency').value;
   po.exchange_rate=parseNum(document.getElementById('poRate').value)||1;
-  await sb.from('china_orders').update({name:po.name,supplier:po.supplier,currency:po.currency,exchange_rate:po.exchange_rate}).eq('id',currentPOId);
+  po.warehouse=document.getElementById('poWarehouse').value.trim()||'K';
+  await sb.from('china_orders').update({name:po.name,supplier:po.supplier,currency:po.currency,exchange_rate:po.exchange_rate,warehouse:po.warehouse}).eq('id',currentPOId);
   renderBoatDetail();
 }
 
@@ -1624,10 +1652,16 @@ function renderPODetail(){
   const b=savedBoats[currentBoatId];if(!b)return;
   const po=b.orders[currentPOId];if(!po)return;
   document.getElementById('poName').value=po.name||'';
-  document.getElementById('poSupplier').value=po.supplier||'';
+  // Populate supplier dropdown (code — name), preserving current selection even if it's free-text legacy
+  const supSel=document.getElementById('poSupplier');
+  const opts=Object.values(suppliersData).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(s=>`<option value="${esc(s.code)}" ${s.code===po.supplier?'selected':''}>${esc(s.code)} — ${esc(s.name||'')}</option>`).join('');
+  let legacy='';
+  if(po.supplier&&!suppliersData[po.supplier])legacy=`<option value="${esc(po.supplier)}" selected>${esc(po.supplier)} (legacy)</option>`;
+  supSel.innerHTML='<option value="">— select —</option>'+legacy+opts;
   document.getElementById('poCurrency').value=po.currency||'USD';
   document.getElementById('poRate').value=po.exchange_rate||1;
   document.getElementById('poRate').title=`1 ${po.currency} = ${po.exchange_rate} EUR`;
+  document.getElementById('poWarehouse').value=po.warehouse||'K';
 
   const sym=CURR_SYM[po.currency]||'$';
   document.getElementById('priceHeader').textContent='Price ('+sym+')';
