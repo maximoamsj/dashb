@@ -195,6 +195,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
       <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Order Simulator</div>
+      <div class="nav-item" data-tab="drafts" onclick="switchTab('drafts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>PO Drafts</div>
       <div class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
     <div class="sidebar-section">
@@ -276,7 +277,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             <div class="left">
               <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div><div class="filter-group"><label>Coverage</label><select id="chinaCoverage" onchange="setChinaCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
-                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('suggested')" style="color:var(--purple)">Suggested</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
+                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('incoming')" style="color:var(--cyan)">Incoming</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('suggested')" style="color:var(--purple)">Suggested</th><th onclick="doCSort('cost')">Cost</th><th onclick="doCSort('ordervalue')">Order €</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
             </div>
           </div>
@@ -363,11 +364,80 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       </div>
     </div>
     <!-- ════════════ SETTINGS ════════════ -->
+    <!-- ════════════ PO DRAFTS ════════════ -->
+    <div class="tab-content" id="tab-drafts">
+      <div class="topbar"><h2>PO Drafts</h2><button class="btn btn-primary" onclick="newDraft()">+ New Draft</button></div>
+      <div class="content">
+        <div id="draftsEmpty" style="text-align:center;padding:60px 20px;color:var(--text3);display:none">
+          <p style="font-size:14px;margin-bottom:8px">No draft purchase orders yet.</p>
+          <p style="font-size:12px">Click <strong>+ New Draft</strong> to start, set a supplier, then auto-fill from China suggestions or add items manually. Export as an Exact-ready CSV.</p>
+        </div>
+        <div id="draftsLayout" style="display:none;grid-template-columns:240px 1fr;gap:16px;height:calc(100vh - 130px)">
+          <div style="border-right:1px solid var(--border);overflow-y:auto;padding-right:12px">
+            <div id="draftsList"></div>
+          </div>
+          <div id="draftDetail" style="overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════ SETTINGS ════════════ -->
     <div class="tab-content" id="tab-settings">
       <div class="topbar"><h2>Settings</h2></div>
       <div class="content">
         <div style="max-width:680px">
-          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Stock calculations</h3>
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Procurement imports</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Import Exact Online exports so Dashb knows your suppliers, costs, and incoming stock.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:13px;color:#fff;font-weight:500">Suppliers (CRMAccounts)</div>
+                <div style="font-size:11px;color:var(--text2)">Sets country → lead time (China/HK 120d, NL 2d, EU 10d, rest 30d)</div>
+                <div id="supStatus" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+              </div>
+              <button class="btn" id="btnSuppliers" onclick="$f('fileSuppliers')">Load Suppliers (.xlsx)</button>
+              <input type="file" id="fileSuppliers" accept=".xlsx" style="display:none" onchange="loadSuppliers(this)">
+            </div>
+          </div>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:13px;color:#fff;font-weight:500">Price list (purchase prices)</div>
+                <div style="font-size:11px;color:var(--text2)">Main-supplier cost + currency per item</div>
+                <div id="costStatus" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+              </div>
+              <button class="btn" id="btnCosts" onclick="$f('fileCosts')">Load Price List (.csv)</button>
+              <input type="file" id="fileCosts" accept=".csv" style="display:none" onchange="loadCosts(this)">
+            </div>
+          </div>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px">
+                <div style="font-size:13px;color:#fff;font-weight:500">Incoming POs (PurPurchOrders)</div>
+                <div style="font-size:11px;color:var(--text2)">Orders already placed — arrival = order date + lead time</div>
+                <div id="incStatus" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
+              </div>
+              <button class="btn" id="btnIncoming" onclick="$f('fileIncoming')">Load Incoming POs (.csv)</button>
+              <input type="file" id="fileIncoming" accept=".csv" multiple style="display:none" onchange="loadIncomingPO(this)">
+            </div>
+          </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">Forecasting</h3>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+              <input type="checkbox" id="settingAutoSeasonality" onchange="updateSeasonalitySetting(this.checked)" style="margin-top:3px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Auto-derive seasonality from sales history</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Suggested order quantities project demand using each item group's seasonal pattern (e.g. kitchen peaks Nov–Jan, drones peak summer), derived automatically from your monthly sales. Turn off to use flat averages.</div>
+                <div id="seasonalityHint" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+              </div>
+            </label>
+          </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">Stock calculations</h3>
           <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Control how stock values are computed across the dashboard.</p>
 
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
@@ -504,7 +574,16 @@ let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
 let chinaCoverage=6; // months to cover for suggested order qty
 let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
 let settings={applyVerschil:true,hideCscart:false};
+let suppliersData={};   // code -> {code,name,city,country,lead_time_override}
+let productCost={};      // code -> {price,currency,supplier_code}
+let incomingPO={};       // code -> [{po_number,qty,receipt_date(Date),order_date,supplier_code,unit_price}]
+let drafts={};           // id -> {id,name,supplier_code,supplier_name,currency,warehouse,order_date,notes,items:{code:{qty,price}}}
+let currentDraftId=null;
+let useAutoSeasonality=true; // Phase 3: derive seasonality from sales history
+let derivedSeasonality={};  // item_group -> [12 monthly factors]
+let lastUpdatedExt={suppliers:null,cost:null,incoming:null};
 try{const s=JSON.parse(localStorage.getItem('kn_settings')||'{}');Object.assign(settings,s)}catch(e){}
+try{const as=localStorage.getItem('kn_auto_seasonality');if(as!=null)useAutoSeasonality=as==='1'}catch(e){}
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -512,10 +591,11 @@ let topCI=null,trendCI=null;
 // INIT — load everything from Supabase
 // ═══════════════════════════════════════════════
 async function initApp(){
-  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadVerschilFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB()]);
+  await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadVerschilFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB(),loadSuppliersFromDB(),loadCostsFromDB(),loadIncomingFromDB(),loadDraftsFromDB()]);
   updateStatus();
   if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
   prepareSalesData();
+  deriveSeasonality();
   const defArr=new Date();defArr.setDate(defArr.getDate()+120);
   const ai=document.getElementById('orderArrival');if(ai)ai.value=defArr.toISOString().split('T')[0];
   updateAIFab();
@@ -625,6 +705,38 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fmtDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[d.getMonth()]+' '+d.getFullYear()}
 function monthDiff(a,b){return(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())}
 function addMonths(d,n){const r=new Date(d);r.setMonth(r.getMonth()+n);return r}
+
+// ── Procurement helpers ──
+const EUROPE_COUNTRIES=['Germany','Ireland','United Kingdom','France','Belgium','Poland','Romania','Czech Republic','Lithuania','Ukraine','Türkiye','Turkiye','Turkey','Norway','Sweden','Croatia','Switzerland','Spain','Estonia','Slovakia','Serbia','Italy','Luxembourg','Russian Federation','Republic of Belarus','Belarus','Armenia','Georgia'];
+function leadTimeForCountry(country){
+  if(!country)return 30;
+  const c=String(country).trim();
+  if(c==='The Netherlands'||c==='Netherlands')return 2;
+  if(c==='China'||c==='Hong Kong')return 120;
+  if(EUROPE_COUNTRIES.includes(c))return 10;
+  return 30; // rest of world
+}
+function leadTimeForSupplierCode(supCode){
+  const s=suppliersData[String(supCode).trim()];
+  if(!s)return 120; // unknown supplier → assume overseas long-haul
+  if(s.lead_time_override!=null&&s.lead_time_override!=='')return parseInt(s.lead_time_override);
+  return leadTimeForCountry(s.country);
+}
+function parseEuro(s){if(s===''||s==null)return 0;return parseFloat(String(s).replace(/\./g,'').replace(',','.'))||0}
+function parseExactDate(s){const m=String(s||'').trim().match(/(\d{1,2})-(\d{1,2})-(\d{4})/);if(!m)return null;return new Date(+m[3],+m[2]-1,+m[1])}
+function fmtExactDate(d){if(!d)return'';const p=n=>String(n).padStart(2,'0');return `${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`}
+// Read a UTF-16LE (or UTF-8) tab-delimited Exact export into rows of cell-arrays
+async function readExactCsv(file){
+  const buf=await file.arrayBuffer();
+  let text;
+  const bytes=new Uint8Array(buf);
+  if(bytes.length>=2&&bytes[0]===0xFF&&bytes[1]===0xFE)text=new TextDecoder('utf-16le').decode(buf);
+  else if(bytes.length>=2&&bytes[0]===0xFE&&bytes[1]===0xFF)text=new TextDecoder('utf-16be').decode(buf);
+  else text=new TextDecoder('utf-8').decode(buf);
+  text=text.replace(/^\uFEFF/,'');
+  const lines=text.split(/\r?\n/).filter(l=>l.length>0);
+  return lines.map(l=>l.split('\t').map(c=>c.replace(/^"|"$/g,'').trim()));
+}
 function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000)}
 function timeAgo(ts){if(!ts)return'';const diff=Date.now()-new Date(ts).getTime();const m=Math.floor(diff/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';const d=Math.floor(h/24);if(d<30)return d+'d ago';return Math.floor(d/30)+'mo ago'}
 async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i+=batchSize){const chunk=rows.slice(i,i+batchSize);const{error}=await sb.from(table).upsert(chunk,{onConflict:undefined});if(error)throw error}}
@@ -645,7 +757,7 @@ function updateStatus(){
 // Refresh "X ago" labels every minute
 setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings();if(t==='drafts')renderDraftsTab()}
 
 function renderSettings(){
   document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
@@ -663,6 +775,12 @@ function renderSettings(){
   if(key){keyEl.value=key;statusEl.innerHTML='<span style="color:var(--green)">● Key saved</span> — the 🤖 button appears in the bottom-right corner'}
   else{keyEl.value='';statusEl.innerHTML='<span style="color:var(--text3)">● No key set</span>'}
   document.getElementById('settingCustomInstructions').value=getCustomInstructions();
+  // Procurement import statuses
+  const sEl=document.getElementById('supStatus');if(sEl){const n=Object.keys(suppliersData).length;sEl.innerHTML=n?`<span style="color:var(--green)">●</span> ${n} suppliers loaded`:'<span style="color:var(--text3)">●</span> not loaded'}
+  const cEl=document.getElementById('costStatus');if(cEl){const n=Object.keys(productCost).length;cEl.innerHTML=n?`<span style="color:var(--green)">●</span> ${n} prices loaded`:'<span style="color:var(--text3)">●</span> not loaded'}
+  const iEl=document.getElementById('incStatus');if(iEl){const n=Object.keys(incomingPO).length;const units=Object.values(incomingPO).flat().filter(x=>x.receipt_date&&x.receipt_date>=new Date()).reduce((s,x)=>s+x.qty,0);iEl.innerHTML=n?`<span style="color:var(--green)">●</span> ${n} products inbound (${units.toLocaleString()} units)`:'<span style="color:var(--text3)">●</span> not loaded'}
+  const seasEl=document.getElementById('settingAutoSeasonality');if(seasEl)seasEl.checked=useAutoSeasonality;
+  const shEl=document.getElementById('seasonalityHint');if(shEl){const n=Object.keys(derivedSeasonality).length;shEl.innerHTML=useAutoSeasonality?(n?`<span style="color:var(--green)">●</span> derived factors for ${n} item groups`:'<span style="color:var(--orange)">●</span> no sales history to derive from yet'):'<span style="color:var(--text3)">●</span> using flat averages'}
   updateAIFab();
 }
 
@@ -985,7 +1103,292 @@ async function clearChinaData(){if(!confirm('Clear China product list?'))return;
   await sb.from('china_seasonality').delete().neq('product_group','');
   chinaProducts={};chinaSeasonality={};toast('China data cleared');updateStatus();renderChinaTab();}
 
-function getSeasonFactor(group,mi){const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1}
+// ═══════════════════════════════════════════════
+// PROCUREMENT: IMPORTERS (Phase 1 & 2)
+// ═══════════════════════════════════════════════
+async function loadSuppliers(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnSuppliers');if(btn){btn.classList.add('loading');btn.textContent='Uploading...'}
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    // find header row containing Code | Name | ... | Country
+    let hi=-1;for(let i=0;i<rows.length;i++){const r=rows[i].map(c=>String(c).trim().toLowerCase());if(r.includes('code')&&r.includes('country')){hi=i;break}}
+    if(hi<0)throw new Error('Could not find Code/Country header row');
+    const hdr=rows[hi].map(c=>String(c).trim().toLowerCase());
+    const cCode=hdr.indexOf('code'),cName=hdr.indexOf('name'),cCity=hdr.indexOf('city'),cCountry=hdr.indexOf('country');
+    const dbRows=[];suppliersData={};
+    for(let i=hi+1;i<rows.length;i++){
+      const code=String(rows[i][cCode]||'').trim();if(!code||code.toLowerCase()==='code')continue;
+      const name=String(rows[i][cName]||'').trim(),city=String(rows[i][cCity]||'').trim(),country=String(rows[i][cCountry]||'').trim();
+      if(!name&&!country)continue;
+      // preserve existing override if present
+      const ex=suppliersData[code];
+      const ov=ex&&ex.lead_time_override!=null?ex.lead_time_override:null;
+      suppliersData[code]={code,name,city,country,lead_time_override:ov};
+      dbRows.push({code,name,city,country,lead_time_override:ov});
+    }
+    await sb.from('suppliers').delete().neq('code','');
+    await batchUpsert('suppliers',dbRows);
+    lastUpdatedExt.suppliers=new Date().toISOString();
+    toast(`Suppliers: ${dbRows.length} loaded`);updateStatus();renderSettings();if(mergedData.length)rebuildMerged();
+  }catch(err){toast('Error: '+err.message,'error')}finally{if(btn){btn.classList.remove('loading');btn.textContent='Load Suppliers (.xlsx)'}input.value=''}
+}
+
+async function loadCosts(input){
+  const f=input.files[0];if(!f)return;
+  const btn=document.getElementById('btnCosts');if(btn){btn.classList.add('loading');btn.textContent='Uploading...'}
+  try{
+    const rows=await readExactCsv(f);
+    // header: Header, Item code, Supplier code, Main supplier, Purchase unit, Purchase unit factor, Currency, Purchase price, ...
+    const hdr=rows[0].map(c=>c.toLowerCase());
+    const cItem=hdr.findIndex(h=>h.includes('item code')),cSup=hdr.findIndex(h=>h.includes('supplier code')),cMain=hdr.findIndex(h=>h.includes('main supplier')),cCur=hdr.findIndex(h=>h==='currency'),cPrice=hdr.findIndex(h=>h.includes('purchase price'));
+    const dbRows=[];productCost={};
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];if(!r||r.length<=cPrice)continue;
+      if((r[0]||'').trim()!=='')continue; // skip H rows, keep line rows
+      const item=(r[cItem]||'').trim(),main=(r[cMain]||'').trim(),price=(r[cPrice]||'').trim();
+      if(!item||main!=='1'||!price)continue;
+      const cur=(r[cCur]||'EUR').trim(),sup=(r[cSup]||'').trim();
+      productCost[item]={price:parseEuro(price),currency:cur,supplier_code:sup};
+      dbRows.push({code:item,supplier_code:sup,purchase_price:parseEuro(price),currency:cur});
+    }
+    await sb.from('product_cost').delete().neq('code','');
+    await batchUpsert('product_cost',dbRows);
+    lastUpdatedExt.cost=new Date().toISOString();
+    toast(`Costs: ${dbRows.length} items (main supplier)`);updateStatus();renderSettings();
+    if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  }catch(err){toast('Error: '+err.message,'error')}finally{if(btn){btn.classList.remove('loading');btn.textContent='Load Price List (.csv)'}input.value=''}
+}
+
+async function loadIncomingPO(input){
+  const files=input.files;if(!files.length)return;
+  const btn=document.getElementById('btnIncoming');if(btn){btn.classList.add('loading');btn.textContent='Uploading...'}
+  try{
+    const allDbRows=[];const seenPOs=new Set();
+    for(const f of files){
+      const rows=await readExactCsv(f);
+      const hdr=rows[0].map(c=>c.toLowerCase());
+      const cItem=hdr.findIndex(h=>h==='item'),cDate=hdr.findIndex(h=>h.includes('order date')),cNum=hdr.findIndex(h=>h.includes('order number')),cQty=hdr.findIndex(h=>h==='quantity'),cPrice=hdr.findIndex(h=>h.includes('unit price'));
+      let curOrderDate=null,curPO=null;
+      for(let i=1;i<rows.length;i++){
+        const r=rows[i];if(!r)continue;
+        if((r[0]||'').trim()==='H'){curOrderDate=parseExactDate(r[cDate]);curPO=(r[cNum]||'').trim();seenPOs.add(curPO);continue}
+        const item=(r[cItem]||'').trim();if(!item)continue;
+        const qty=parseEuro(r[cQty]),price=parseEuro(r[cPrice]);
+        const od=curOrderDate||parseExactDate(r[cDate]);
+        const po=curPO||(r[cNum]||'').trim();
+        // supplier from item's main-supplier cost record → lead time → receipt date
+        const supCode=(productCost[item]||{}).supplier_code||'';
+        const lt=leadTimeForSupplierCode(supCode);
+        const rd=od?new Date(od.getTime()+lt*86400000):null;
+        allDbRows.push({po_number:po,code:item,supplier_code:supCode,qty,unit_price:price,order_date:od?od.toISOString().split('T')[0]:null,receipt_date:rd?rd.toISOString().split('T')[0]:null});
+      }
+    }
+    // Replace incoming POs that appear in these files (by po_number)
+    for(const po of seenPOs){await sb.from('incoming_po').delete().eq('po_number',po)}
+    await batchUpsert('incoming_po',allDbRows);
+    await loadIncomingFromDB();
+    lastUpdatedExt.incoming=new Date().toISOString();
+    toast(`Incoming: ${allDbRows.length} line(s) from ${seenPOs.size} PO(s)`);updateStatus();renderSettings();
+    if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  }catch(err){toast('Error: '+err.message,'error')}finally{if(btn){btn.classList.remove('loading');btn.textContent='Load Incoming POs (.csv)'}input.value=''}
+}
+
+async function loadSuppliersFromDB(){const data=await fetchAll('suppliers');data.forEach(r=>{suppliersData[r.code]={code:r.code,name:r.name,city:r.city,country:r.country,lead_time_override:r.lead_time_override}})}
+async function loadCostsFromDB(){const data=await fetchAll('product_cost');data.forEach(r=>{productCost[r.code]={price:parseFloat(r.purchase_price)||0,currency:r.currency||'EUR',supplier_code:r.supplier_code||''}})}
+async function loadIncomingFromDB(){
+  const data=await fetchAll('incoming_po');incomingPO={};
+  data.forEach(r=>{
+    if(!incomingPO[r.code])incomingPO[r.code]=[];
+    incomingPO[r.code].push({po_number:r.po_number,qty:parseFloat(r.qty)||0,receipt_date:r.receipt_date?new Date(r.receipt_date):null,order_date:r.order_date?new Date(r.order_date):null,supplier_code:r.supplier_code,unit_price:parseFloat(r.unit_price)||0});
+  });
+}
+function getIncomingForCode(code){return(incomingPO[code]||[]).filter(x=>x.receipt_date&&x.receipt_date>=new Date()).map(x=>({date:x.receipt_date,qty:x.qty}))}
+function getIncomingTotal(code){return(incomingPO[code]||[]).filter(x=>x.receipt_date&&x.receipt_date>=new Date()).reduce((s,x)=>s+x.qty,0)}
+function getCost(code){return productCost[code]||null}
+
+// ═══════════════════════════════════════════════
+// PO DRAFTS (Phase 4)
+// ═══════════════════════════════════════════════
+async function loadDraftsFromDB(){
+  const heads=await fetchAll('draft_pos');
+  const items=await fetchAll('draft_po_items');
+  drafts={};
+  heads.forEach(d=>{drafts[d.id]={id:d.id,name:d.name||'',supplier_code:d.supplier_code||'',supplier_name:d.supplier_name||'',currency:d.currency||'EUR',warehouse:d.warehouse||'K',order_date:d.order_date||'',notes:d.notes||'',items:{}}});
+  items.forEach(it=>{if(drafts[it.draft_id])drafts[it.draft_id].items[it.code]={qty:parseFloat(it.qty)||0,price:parseFloat(it.unit_price)||0}});
+}
+async function saveDraftHeader(d){await sb.from('draft_pos').upsert({id:d.id,name:d.name,supplier_code:d.supplier_code,supplier_name:d.supplier_name,currency:d.currency,warehouse:d.warehouse,order_date:d.order_date||null,notes:d.notes})}
+async function saveDraftItem(draftId,code,it){await sb.from('draft_po_items').upsert({draft_id:draftId,code,qty:it.qty,unit_price:it.price})}
+
+function newDraft(){
+  const id='draft_'+Date.now();
+  drafts[id]={id,name:'New PO',supplier_code:'',supplier_name:'',currency:'EUR',warehouse:'K',order_date:new Date().toISOString().split('T')[0],notes:'',items:{}};
+  currentDraftId=id;saveDraftHeader(drafts[id]);renderDraftsTab();
+}
+async function deleteDraft(id){
+  if(!confirm('Delete this draft PO?'))return;
+  await sb.from('draft_po_items').delete().eq('draft_id',id);
+  await sb.from('draft_pos').delete().eq('id',id);
+  delete drafts[id];if(currentDraftId===id)currentDraftId=null;renderDraftsTab();
+}
+function selectDraft(id){currentDraftId=id;renderDraftsTab();}
+
+function updateDraftField(field,val){
+  const d=drafts[currentDraftId];if(!d)return;
+  d[field]=val;
+  if(field==='supplier_code'){const s=suppliersData[val.trim()];d.supplier_name=s?s.name:''}
+  saveDraftHeader(d);renderDraftDetail();
+}
+async function addItemToDraft(code){
+  const d=drafts[currentDraftId];if(!d)return;
+  code=String(code).trim();if(!code||d.items[code]){toast(code?'Already in draft':'Enter a code','error');return}
+  if(!masterItems[code]&&!productCost[code]){toast('Unknown product code','error');return}
+  const cost=getCost(code);
+  d.items[code]={qty:0,price:cost?cost.price:0};
+  await saveDraftItem(d.id,code,d.items[code]);renderDraftDetail();
+}
+async function updateDraftItem(code,field,val){
+  const d=drafts[currentDraftId];if(!d||!d.items[code])return;
+  d.items[code][field]=parseNum(val);
+  await saveDraftItem(d.id,code,d.items[code]);renderDraftTotals();
+}
+async function removeDraftItem(code){
+  const d=drafts[currentDraftId];if(!d)return;
+  delete d.items[code];
+  await sb.from('draft_po_items').delete().eq('draft_id',d.id).eq('code',code);
+  renderDraftDetail();
+}
+
+// Auto-fill draft from China suggestions for the chosen supplier
+async function fillDraftFromSuggestions(){
+  const d=drafts[currentDraftId];if(!d)return;
+  if(!d.supplier_code){toast('Set a supplier first','error');return}
+  const sup=suppliersData[d.supplier_code];if(!sup){toast('Unknown supplier','error');return}
+  // Find China products whose main supplier = this supplier code, with suggested qty > 0
+  let added=0;
+  for(const code of Object.keys(chinaProducts)){
+    const cost=getCost(code);if(!cost||cost.supplier_code!==d.supplier_code)continue;
+    const info=getStockoutInfo(code);if(!info)continue;
+    const sug=getSuggestedQty(info);if(!sug.qty||sug.qty<=0)continue;
+    if(!d.items[code]){d.items[code]={qty:sug.qty,price:cost.price};await saveDraftItem(d.id,code,d.items[code]);added++}
+  }
+  toast(added?`Added ${added} suggested items`:'No suggestions for this supplier');renderDraftDetail();
+}
+
+function exportDraftToExact(){
+  const d=drafts[currentDraftId];if(!d)return;
+  if(!d.supplier_code){toast('Supplier code required for export','error');return}
+  if(!Object.keys(d.items).length){toast('No items to export','error');return}
+  const lt=leadTimeForSupplierCode(d.supplier_code);
+  const od=d.order_date?new Date(d.order_date):new Date();
+  const rd=new Date(od.getTime()+lt*86400000);
+  const rows=[];
+  rows.push(['Header','SupplierCode','WarehouseCode','Currency','OrderDate','ReceiptDate','ItemCode','Quantity','UnitPrice','VATCode']);
+  rows.push(['H',d.supplier_code,d.warehouse||'K',d.currency,fmtExactDate(od),fmtExactDate(rd),'','','','']);
+  Object.keys(d.items).forEach(code=>{const it=d.items[code];rows.push(['','','',d.currency,'','',code,String(it.qty),it.price?String(it.price.toFixed(2)):'','9'])});
+  const csv=rows.map(r=>r.join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='PO_'+(d.supplier_code||'draft')+'_'+(d.name||'').replace(/[^a-z0-9]/gi,'_')+'.csv';a.click();URL.revokeObjectURL(url);
+  toast('Exported — import into Exact (recognise PO by column 1 = "H")');
+}
+
+function renderDraftsTab(){
+  const ids=Object.keys(drafts);
+  document.getElementById('draftsEmpty').style.display=ids.length?'none':'block';
+  document.getElementById('draftsLayout').style.display=ids.length?'grid':'none';
+  if(!ids.length)return;
+  if(!currentDraftId||!drafts[currentDraftId])currentDraftId=ids[0];
+  document.getElementById('draftsList').innerHTML=ids.map(id=>{
+    const d=drafts[id];const n=Object.keys(d.items).length;
+    return`<div onclick="selectDraft('${id}')" style="padding:10px 12px;border-radius:6px;margin-bottom:6px;cursor:pointer;border:1px solid ${id===currentDraftId?'var(--purple)':'var(--border)'};background:${id===currentDraftId?'rgba(167,139,250,.08)':'transparent'}">
+      <div style="font-size:13px;color:#fff;font-weight:500">${esc(d.name||'Untitled')}</div>
+      <div style="font-size:11px;color:var(--text3)">${d.supplier_name?esc(d.supplier_name):(d.supplier_code?'Supplier '+esc(d.supplier_code):'No supplier')} · ${n} item${n!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+  renderDraftDetail();
+}
+
+function renderDraftDetail(){
+  const d=drafts[currentDraftId];if(!d){document.getElementById('draftDetail').innerHTML='';return}
+  const supOptions=Object.values(suppliersData).sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(s=>`<option value="${esc(s.code)}" ${s.code===d.supplier_code?'selected':''}>${esc(s.code)} — ${esc(s.name||'')}</option>`).join('');
+  const curOptions=['EUR','USD','CNY','GBP'].map(c=>`<option value="${c}" ${c===d.currency?'selected':''}>${c}</option>`).join('');
+  const lt=d.supplier_code?leadTimeForSupplierCode(d.supplier_code):null;
+  const ltNote=lt!=null?`<span style="font-size:11px;color:var(--text3)">lead time ${lt}d → receipt ${d.order_date?fmtExactDate(new Date(new Date(d.order_date).getTime()+lt*86400000)):'—'}</span>`:'';
+  let rows='';let total=0;
+  Object.keys(d.items).forEach(code=>{
+    const it=d.items[code],m=masterItems[code]||{},line=it.qty*it.price;total+=line;
+    rows+=`<tr><td>${code}</td><td style="font-family:var(--font);max-width:240px;overflow:hidden;text-overflow:ellipsis" title="${esc(m.description||'')}">${esc(m.description||'')}</td><td><input type="number" value="${it.qty}" onchange="updateDraftItem('${code}','qty',this.value)" style="width:70px"></td><td><input type="number" step="0.01" value="${it.price}" onchange="updateDraftItem('${code}','price',this.value)" style="width:80px"></td><td style="text-align:right">${line.toFixed(2)}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--red);border-color:var(--border)" onclick="removeDraftItem('${code}')">×</button></td></tr>`;
+  });
+  document.getElementById('draftDetail').innerHTML=`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <input value="${esc(d.name||'')}" onchange="updateDraftField('name',this.value)" placeholder="Draft name" style="font-size:14px;font-weight:600;flex:1;min-width:160px">
+      <button class="btn btn-primary" onclick="exportDraftToExact()">Export to Exact (CSV)</button>
+      <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteDraft('${d.id}')">Delete</button>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
+      <div><label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:3px">Supplier</label><select onchange="updateDraftField('supplier_code',this.value)" style="min-width:240px"><option value="">— select —</option>${supOptions}</select></div>
+      <div><label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:3px">Currency</label><select onchange="updateDraftField('currency',this.value)">${curOptions}</select></div>
+      <div><label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:3px">Order date</label><input type="date" value="${d.order_date||''}" onchange="updateDraftField('order_date',this.value)"></div>
+      <div><label style="font-size:10px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:3px">Warehouse</label><input value="${esc(d.warehouse||'K')}" onchange="updateDraftField('warehouse',this.value)" style="width:60px"></div>
+      <div style="display:flex;align-items:flex-end">${ltNote}</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+      <input id="draftAddCode" placeholder="Add item code…" style="width:160px" onkeydown="if(event.key==='Enter'){addItemToDraft(this.value);this.value=''}">
+      <button class="btn" onclick="const i=document.getElementById('draftAddCode');addItemToDraft(i.value);i.value=''">Add item</button>
+      <button class="btn" onclick="fillDraftFromSuggestions()" title="Add all China products for this supplier with a suggested quantity">⚡ Auto-fill from suggestions</button>
+    </div>
+    <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 380px)"><table>
+      <thead><tr><th>Code</th><th>Description</th><th>Qty</th><th>Unit price</th><th style="text-align:right">Line total</th><th></th></tr></thead>
+      <tbody id="draftItemsBody">${rows||'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">No items yet. Set a supplier and auto-fill, or add codes manually.</td></tr>'}</tbody>
+    </table></div></div>
+    <div id="draftTotalsBar" style="margin-top:12px;text-align:right;font-size:14px;color:#fff">Total: <strong style="color:var(--purple)">${d.currency} ${total.toFixed(2)}</strong></div>`;
+}
+function renderDraftTotals(){
+  const d=drafts[currentDraftId];if(!d)return;
+  let total=0;Object.values(d.items).forEach(it=>total+=it.qty*it.price);
+  const bar=document.getElementById('draftTotalsBar');if(bar)bar.innerHTML=`Total: <strong style="color:var(--purple)">${d.currency} ${total.toFixed(2)}</strong>`;
+  // update line totals in place
+  const d2=drafts[currentDraftId];
+  document.querySelectorAll('#draftItemsBody tr').forEach(tr=>{const code=tr.cells[0]?.textContent;if(code&&d2.items[code]){const it=d2.items[code];if(tr.cells[4])tr.cells[4].textContent=(it.qty*it.price).toFixed(2)}});
+}
+
+function updateSeasonalitySetting(checked){
+  useAutoSeasonality=checked;
+  try{localStorage.setItem('kn_auto_seasonality',checked?'1':'0')}catch(e){}
+  if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  renderSettings();
+}
+
+// Phase 3: derive per-item_group seasonal factors from sales history
+function deriveSeasonality(){
+  derivedSeasonality={};
+  if(!salesPeriods.length)return;
+  // For each item_group, sum sales per calendar month across all history, normalize to avg=1
+  const groupMonth={}; // group -> [12] totals, and [12] counts
+  salesPeriods.forEach(per=>{
+    const mi=parseInt(per.split('-')[1])-1; // period format YYYY-MM
+    if(isNaN(mi))return;
+    (salesHistory[per]||[]).forEach(r=>{
+      const g=(masterItems[r.item_code]||{}).group||'';if(!g)return;
+      if(!groupMonth[g]){groupMonth[g]={sum:new Array(12).fill(0),cnt:new Array(12).fill(0)}}
+      groupMonth[g].sum[mi]+=r.quantity||0;groupMonth[g].cnt[mi]++;
+    });
+  });
+  Object.keys(groupMonth).forEach(g=>{
+    const gm=groupMonth[g];
+    const avgPerMonth=gm.sum.map((s,i)=>gm.cnt[i]>0?s/gm.cnt[i]:0);
+    const overall=avgPerMonth.reduce((a,b)=>a+b,0)/12;
+    if(overall<=0){derivedSeasonality[g]=new Array(12).fill(1);return}
+    derivedSeasonality[g]=avgPerMonth.map(v=>{const f=v/overall;return f>0?Math.round(f*100)/100:1});
+  });
+}
+function getSeasonFactor(group,mi){
+  if(useAutoSeasonality&&derivedSeasonality[group]&&derivedSeasonality[group][mi])return derivedSeasonality[group][mi];
+  const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1;
+}
 function projectStock(code,curStock,avg,group,orderQty,arrDate){
   // Single-delivery wrapper for backward compatibility
   const dels=arrDate&&orderQty>0?[{date:arrDate,qty:orderQty}]:[];
@@ -1013,11 +1416,20 @@ function getChinaAvg(code){
 
 function getSuggestedQty(info){
   if(!info||info.avg<=0)return{qty:null,label:'no data',breakdown:''};
-  const need=info.avg*chinaCoverage;
+  // Seasonal demand over coverage window starting next month
+  const now=new Date();let demand=0;const parts=[];
+  for(let i=1;i<=chinaCoverage;i++){
+    const d=addMonths(now,i),f=getSeasonFactor(info.group,d.getMonth());
+    const md=info.avg*f;demand+=md;
+    if(i<=3)parts.push(`${fmtDate(d).slice(0,3)}×${f.toFixed(1)}`);
+  }
+  demand=Math.round(demand);
   const stock=Math.max(info.currentStock,0);
-  const qty=Math.max(0,Math.ceil(need-stock));
-  if(qty===0)return{qty:0,label:'covered',breakdown:`stock ≥ ${need.toFixed(0)}`};
-  return{qty,label:'',breakdown:`${info.avg} × ${chinaCoverage} − ${info.currentStock}`};
+  const incoming=info.incoming||0;
+  const qty=Math.max(0,Math.ceil(demand-stock-incoming));
+  if(qty===0)return{qty:0,label:'covered',breakdown:`need ${demand}, have ${stock}${incoming?'+'+incoming+' inbound':''}`};
+  const seasNote=useAutoSeasonality&&derivedSeasonality[info.group]?` (${parts.join('+')}…)`:'';
+  return{qty,label:'',breakdown:`${demand} demand − ${info.currentStock} stock${incoming?' − '+incoming+' inbound':''}${seasNote}`};
 }
 
 function setChinaCoverage(v){chinaCoverage=parseInt(v)||6;renderChinaTable()}
@@ -1028,10 +1440,14 @@ function getStockoutInfo(code){
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,activeMo=chinaAvg.activeMo,totalMo=chinaAvg.totalMo;
   const group=cp.group||m.group||'',lt=cp.leadTime||120;
-  const proj=projectStock(code,curStock,avg,group,0,null);
+  const incoming=getIncomingForCode(code);
+  const incomingTotal=getIncomingTotal(code);
+  // projection WITH incoming POs as deliveries
+  const proj=projectStockMulti(code,curStock,avg,group,incoming);
   let soIdx=-1;for(let i=0;i<proj.length;i++){if(proj[i].stock<=0){soIdx=i;break}}
   const soDate=soIdx>=0?proj[soIdx].date:null,obDate=soDate?new Date(soDate.getTime()-lt*86400000):null;
-  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,avg,activeMo,totalMo,leadTime:lt,projection:proj,stockoutDate:soDate,orderByDate:obDate,status:cs?cs.status:(exactStock[code]!==undefined?'E':'?')}}
+  const cost=getCost(code);
+  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,incoming:incomingTotal,avg,activeMo,totalMo,leadTime:lt,projection:proj,stockoutDate:soDate,orderByDate:obDate,cost:cost?cost.price:null,costCurrency:cost?cost.currency:null,status:cs?cs.status:(exactStock[code]!==undefined?'E':'?')}}
 
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
 
@@ -1051,7 +1467,7 @@ function renderChinaTable(){
   if(supplierF)items=items.filter(r=>r.supplier===supplierF);
   if(groupF)items=items.filter(r=>r.group===groupF);
   if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
-  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'suggested':va=(getSuggestedQty(a).qty??-1);vb=(getSuggestedQty(b).qty??-1);break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'incoming':va=a.incoming;vb=b.incoming;break;case'avg':va=a.avg;vb=b.avg;break;case'suggested':va=(getSuggestedQty(a).qty??-1);vb=(getSuggestedQty(b).qty??-1);break;case'cost':va=a.cost??-1;vb=b.cost??-1;break;case'ordervalue':va=((getSuggestedQty(a).qty||0)*(a.cost||0));vb=((getSuggestedQty(b).qty||0)*(b.cost||0));break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
   document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div>`;
   const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
@@ -1064,7 +1480,11 @@ function renderChinaTable(){
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
     const useP=r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td style="background:rgba(167,139,250,.05)">${sH}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
+    const incH=r.incoming>0?`<span style="color:var(--cyan);font-weight:600">+${r.incoming}</span>`:'<span style="color:var(--text3)">—</span>';
+    const costH=r.cost!=null?`${r.cost.toFixed(2)}<br><span style="font-size:9px;color:var(--text3)">${r.costCurrency||''}</span>`:'<span style="color:var(--text3)">—</span>';
+    const ov=(sug.qty&&r.cost!=null)?sug.qty*r.cost:null;
+    const ovH=ov!=null?`<span style="color:var(--text)">${ov.toLocaleString(undefined,{maximumFractionDigits:0})}</span><br><span style="font-size:9px;color:var(--text3)">${r.costCurrency||''}</span>`:'<span style="color:var(--text3)">—</span>';
+    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${incH}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td style="background:rgba(167,139,250,.05)">${sH}</td><td>${costH}</td><td>${ovH}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
 }
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
 
