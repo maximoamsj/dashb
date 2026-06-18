@@ -148,6 +148,32 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 .lock-box .lock-btn{width:100%;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .lock-box .lock-btn:hover{background:#2563eb}
 .lock-error{color:var(--red);font-size:12px;margin-bottom:10px;display:none}
+/* AI Chat Panel */
+.ai-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:900;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;transition:transform .15s}
+.ai-fab:hover{transform:scale(1.1)}
+.ai-fab.has-key{display:flex}
+.ai-panel{position:fixed;right:-440px;top:0;bottom:0;width:420px;background:var(--bg2);border-left:1px solid var(--border);z-index:950;display:flex;flex-direction:column;transition:right .25s ease}
+.ai-panel.open{right:0}
+.ai-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;flex-shrink:0}
+.ai-header h3{font-size:14px;font-weight:600;color:#fff;flex:1}
+.ai-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px 8px}
+.ai-close:hover{color:var(--text)}
+.ai-prompts{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0}
+.ai-prompt-btn{padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:10px;font-family:var(--font);white-space:nowrap}
+.ai-prompt-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--text3)}
+.ai-messages{flex:1;overflow-y:auto;padding:16px}
+.ai-msg{margin-bottom:14px;font-size:12px;line-height:1.6}
+.ai-msg.user{text-align:right}.ai-msg.user .ai-bubble{background:var(--accent);color:#fff;display:inline-block;padding:8px 14px;border-radius:12px 12px 2px 12px;max-width:85%;text-align:left}
+.ai-msg.assistant .ai-bubble{background:var(--bg3);color:var(--text);padding:10px 14px;border-radius:12px 12px 12px 2px;max-width:95%;white-space:pre-wrap}
+.ai-msg.assistant .ai-bubble strong{color:#fff}
+.ai-msg.system{text-align:center;color:var(--text3);font-size:11px;font-style:italic}
+.ai-typing{color:var(--purple);font-size:11px;padding:4px 16px}
+.ai-input-area{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0}
+.ai-input-area textarea{flex:1;resize:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;padding:8px 12px;outline:none;min-height:36px;max-height:100px}
+.ai-input-area textarea:focus{border-color:var(--accent)}
+.ai-send{background:var(--purple);border:none;color:#fff;border-radius:6px;padding:8px 14px;cursor:pointer;font-family:var(--font);font-size:12px;font-weight:500;flex-shrink:0}
+.ai-send:hover{background:#8b6fe0}
+.ai-send:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -169,6 +195,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
       <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Order Simulator</div>
+      <div class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
     </div>
     <div class="sidebar-section">
       <h4>Data Status</h4>
@@ -210,7 +237,6 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             <div class="filter-group"><label>Urgency</label><select id="filterUrgency" onchange="renderStockTable()"><option value="">All</option><option value="critical">Out of stock (≤0)</option><option value="warning">Critical (&lt;1 mo)</option><option value="low">Low (&lt;2 mo)</option><option value="ok">OK (2+ mo)</option><option value="nosale">No sales data</option></select></div>
             <div class="filter-group"><label>China</label><select id="filterChina" onchange="renderStockTable()"><option value="">All</option><option value="yes">China only</option><option value="no">Non-China only</option></select></div>
             <span class="clear-btn" onclick="clearFilters()">Clear filters</span>
-            <button class="btn" id="btnToggleCS" onclick="toggleCSColumns()" style="font-size:11px;padding:5px 10px">Hide Cscart</button>
           </div>
           <div class="table-wrap"><div class="table-scroll"><table><thead><tr>
             <th onclick="doSort('status')">Status</th><th onclick="doSort('code')">Code</th><th onclick="doSort('supplier')">Supplier</th><th onclick="doSort('description')" style="min-width:200px">Description</th>
@@ -223,13 +249,13 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
     </div>
     <!-- ════════════ MONTHLY SALES ════════════ -->
     <div class="tab-content" id="tab-sales">
-      <div class="topbar"><h2>Monthly Sales</h2><button class="btn btn-primary" onclick="$f('fileSales')" id="btnSales">Load Monthly CSV</button><input type="file" id="fileSales" accept=".csv" multiple onchange="loadSalesCSV(this)"></div>
+      <div class="topbar"><h2>Monthly Sales</h2><button class="btn btn-primary" onclick="$f('fileSales')" id="btnSales">Load Monthly CSV</button><input type="file" id="fileSales" accept=".csv" multiple onchange="loadSalesCSV(this)"><button class="btn" onclick="exportSalesCSV()">Export CSV</button></div>
       <div class="content">
         <div id="salesEmpty" class="empty-state"><h3>No sales data</h3><p>Upload processed monthly CSV files.<br>Columns: period, item_code, description, quantity, sales_value, sales_amount</p><button class="btn btn-primary" onclick="$f('fileSales')">Load Files</button></div>
         <div id="salesDash" style="display:none">
           <div class="period-tags" id="periodTags"></div>
           <div class="sales-grid"><div class="chart-box"><h3>Top 20 Products (Latest Month)</h3><div class="chart-container"><canvas id="topChart"></canvas></div></div><div class="chart-box"><h3 id="trendTitle">Product Trend — click a row below</h3><div class="chart-container"><canvas id="trendChart"></canvas></div></div></div>
-          <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="salesSearch" placeholder="Code or description..." oninput="renderSalesTable()" style="width:200px"></div><div class="filter-group"><label>Sort by</label><select id="salesSort" onchange="renderSalesTable()"><option value="latest_desc">Latest month (high→low)</option><option value="latest_asc">Latest month (low→high)</option><option value="growth">Above avg</option><option value="decline">Below avg</option></select></div></div>
+          <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="salesSearch" placeholder="Code or description..." oninput="renderSalesTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="salesSupplier" onchange="renderSalesTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="salesGroup" onchange="renderSalesTable()"><option value="">All</option></select></div><div class="filter-group"><label>Sort by</label><select id="salesSort" onchange="renderSalesTable()"><option value="latest_desc">Latest month (high→low)</option><option value="latest_asc">Latest month (low→high)</option><option value="growth">Above avg</option><option value="decline">Below avg</option></select></div></div>
           <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 560px)"><table><thead><tr id="salesHead"></tr></thead><tbody id="salesBody"></tbody></table></div></div>
         </div>
       </div>
@@ -248,9 +274,9 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="cards" id="chinaCards"></div>
           <div class="china-layout" style="grid-template-columns:1fr">
             <div class="left">
-              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div></div>
+              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div><div class="filter-group"><label>Coverage</label><select id="chinaCoverage" onchange="setChinaCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
-                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
+                <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('suggested')" style="color:var(--purple)">Suggested</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
             </div>
           </div>
@@ -278,6 +304,15 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
               <div class="filter-group"><label>Notes</label><input type="text" id="boatNotes" onchange="saveBoatMeta()" placeholder="optional" style="width:200px"></div>
               <button class="btn btn-primary" onclick="newPO()" style="margin-left:auto">+ New PO</button>
               <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteCurrentBoat()">Delete Boat</button>
+            </div>
+
+            <!-- Other-boats toggle -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2)">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="toggleOtherBoats" onchange="toggleIncludeOtherBoats(this.checked)" checked>
+                Include other boats' arrivals in projection
+              </label>
+              <span id="otherBoatsHint" style="font-size:11px;color:var(--text3)"></span>
             </div>
 
             <!-- Boat summary -->
@@ -327,9 +362,90 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         </div>
       </div>
     </div>
+    <!-- ════════════ SETTINGS ════════════ -->
+    <div class="tab-content" id="tab-settings">
+      <div class="topbar"><h2>Settings</h2></div>
+      <div class="content">
+        <div style="max-width:680px">
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px">Stock calculations</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Control how stock values are computed across the dashboard.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+              <input type="checkbox" id="settingApplyVerschil" onchange="updateSetting('applyVerschil',this.checked)" style="margin-top:3px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Apply Verschil correction</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">When enabled, the displayed Exact stock subtracts the Verschil amount (real_exact = exact − verschil). Affects Stock Alerts, Months Left, China Order Planner, and Order Simulator. The Verschil data stays in Supabase either way.</div>
+                <div id="verschilStatusHint" style="font-size:11px;color:var(--text3);margin-top:6px"></div>
+              </div>
+            </label>
+          </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">Display</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Control which columns and data are visible.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
+              <input type="checkbox" id="settingHideCscart" onchange="updateSetting('hideCscart',this.checked)" style="margin-top:3px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Hide Cscart columns</div>
+                <div style="font-size:11px;color:var(--text2);line-height:1.5">Hides the Stock (CS) and Diff columns from the Stock Alerts table. Cscart data is still uploaded and stored — only the display is affected.</div>
+              </div>
+            </label>
+          </div>
+
+          <h3 style="font-size:14px;font-weight:600;color:#fff;margin-bottom:6px;margin-top:24px">AI Assistant</h3>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Connect Claude AI for in-dashboard data analysis and PO suggestions.</p>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Anthropic API Key</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Get your key from <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. Stored in your browser only — never sent to Supabase.</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="password" id="settingApiKey" placeholder="sk-ant-..." style="flex:1;font-family:var(--mono);font-size:11px" value="">
+              <button class="btn" onclick="saveApiKey()">Save</button>
+              <button class="btn" onclick="clearApiKey()" style="color:var(--red);border-color:var(--red)">Clear</button>
+            </div>
+            <div id="apiKeyStatus" style="font-size:11px;margin-top:6px;color:var(--text3)"></div>
+          </div>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+            <div style="font-size:13px;color:#fff;font-weight:500;margin-bottom:4px">Custom Instructions</div>
+            <div style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:10px">Tell the AI how you want it to behave. These instructions are included in every message automatically.</div>
+            <textarea id="settingCustomInstructions" rows="6" style="width:100%;resize:vertical;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;padding:10px;outline:none;line-height:1.5" placeholder="e.g. When I say 'analyze [supplier]', show trending up/down products, suggested order quantities, and anomalies. Always respond in English."></textarea>
+            <button class="btn" onclick="saveCustomInstructions()" style="margin-top:8px">Save Instructions</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- AI Chat -->
+<button class="ai-fab" id="aiFab" onclick="toggleAIPanel()" title="AI Assistant">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-header">
+    <h3>🤖 AI Assistant</h3>
+    <span style="font-size:10px;color:var(--text3)">Claude Sonnet</span>
+    <button class="ai-close" onclick="aiHistory=[];renderAIMessages()" title="Clear chat" style="font-size:14px;margin-right:-4px">🗑</button>
+    <button class="ai-close" onclick="toggleAIPanel()">×</button>
+  </div>
+  <div class="ai-prompts">
+    <button class="ai-prompt-btn" onclick="aiQuick('stock')">📦 Stock overview</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('urgent')">🚨 Urgent orders</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('trends')">📈 Sales trends</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('po')">📋 Draft a PO</button>
+    <button class="ai-prompt-btn" onclick="aiQuick('budget')">💰 Budget optimizer</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-msg system">Ask me about your stock, sales trends, or purchasing decisions. I can see all your dashboard data.</div>
+  </div>
+  <div class="ai-typing" id="aiTyping" style="display:none">Claude is thinking...</div>
+  <div class="ai-input-area">
+    <textarea id="aiInput" placeholder="Ask about your data..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAI()}"></textarea>
+    <button class="ai-send" id="aiSendBtn" onclick="sendAI()">Send</button>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -384,6 +500,11 @@ let chinaProducts=JSON.parse('{}'), chinaSeasonality=JSON.parse('{}');
 let poData={}; // code -> {po, date}
 let savedBoats={}; // id -> {id,name,arrival_date,notes,orders:{po_id:{id,name,supplier,currency,exchange_rate,notes,items:{code:{qty,price}}}}}
 let currentBoatId=null, currentPOId=null;
+let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
+let chinaCoverage=6; // months to cover for suggested order qty
+let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
+let settings={applyVerschil:true,hideCscart:false};
+try{const s=JSON.parse(localStorage.getItem('kn_settings')||'{}');Object.assign(settings,s)}catch(e){}
 let sortCol='last',sortAsc=true,cSortCol='stockout',cSortAsc=true;
 let topCI=null,trendCI=null;
 
@@ -394,25 +515,40 @@ async function initApp(){
   await Promise.all([loadMasterFromDB(),loadCscartFromDB(),loadExactFromDB(),loadVerschilFromDB(),loadSalesFromDB(),loadChinaFromDB(),loadPoFromDB(),loadOrdersFromDB()]);
   updateStatus();
   if(Object.keys(masterItems).length||Object.keys(cscartData).length||Object.keys(exactStock).length) rebuildMerged();
+  prepareSalesData();
   const defArr=new Date();defArr.setDate(defArr.getDate()+120);
   const ai=document.getElementById('orderArrival');if(ai)ai.value=defArr.toISOString().split('T')[0];
+  updateAIFab();
 }
+
+function prepareSalesData(){
+  if(!salesPeriods.length){window._sm=[];window._sp=[];return}
+  const allSkus={};salesPeriods.forEach(p=>{(salesHistory[p]||[]).forEach(r=>{if(!allSkus[r.item_code])allSkus[r.item_code]={item_code:r.item_code,description:r.description};if(!allSkus[r.item_code].description&&r.description)allSkus[r.item_code].description=r.description;allSkus[r.item_code]['q_'+p]=r.quantity;allSkus[r.item_code]['s_'+p]=r.sales_amount})});
+  Object.values(allSkus).forEach(r=>{const m=masterItems[r.item_code]||{};r.supplier=m.supplier||'';r.item_group=m.group||''});
+  window._sm=Object.values(allSkus);window._sp=salesPeriods;
+}
+
+async function fetchLatestTimestamp(table){const{data}=await sb.from(table).select('updated_at').order('updated_at',{ascending:false}).limit(1);return data&&data[0]?data[0].updated_at:null}
 
 async function loadMasterFromDB(){
   const data=await fetchAll('master_items');
   data.forEach(r=>{masterItems[r.code]={supplier:r.supplier,description:r.description,price:r.price,group:r.item_group,bu:r.business_unit}});
+  lastUpdated.master=await fetchLatestTimestamp('master_items');
 }
 async function loadCscartFromDB(){
   const data=await fetchAll('cscart_stock');
   data.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
+  lastUpdated.cscart=await fetchLatestTimestamp('cscart_stock');
 }
 async function loadExactFromDB(){
   const data=await fetchAll('exact_stock');
   data.forEach(r=>{exactStock[r.code]=r.stock});
+  lastUpdated.exact=await fetchLatestTimestamp('exact_stock');
 }
 async function loadVerschilFromDB(){
   const data=await fetchAll('verschil_stock');
   data.forEach(r=>{verschilData[r.code]=r.verschil});
+  lastUpdated.verschil=await fetchLatestTimestamp('verschil_stock');
 }
 async function loadSalesFromDB(){
   const data=await fetchAll('sales_monthly');
@@ -490,22 +626,60 @@ function fmtDate(d){const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Se
 function monthDiff(a,b){return(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth())}
 function addMonths(d,n){const r=new Date(d);r.setMonth(r.getMonth()+n);return r}
 function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000)}
+function timeAgo(ts){if(!ts)return'';const diff=Date.now()-new Date(ts).getTime();const m=Math.floor(diff/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';const d=Math.floor(h/24);if(d<30)return d+'d ago';return Math.floor(d/30)+'mo ago'}
 async function batchUpsert(table,rows,batchSize=500){for(let i=0;i<rows.length;i+=batchSize){const chunk=rows.slice(i,i+batchSize);const{error}=await sb.from(table).upsert(chunk,{onConflict:undefined});if(error)throw error}}
 async function fetchAll(table,pageSize=1000){let all=[],from=0;while(true){const{data,error}=await sb.from(table).select('*').range(from,from+pageSize-1);if(error)throw error;if(!data||!data.length)break;all=all.concat(data);if(data.length<pageSize)break;from+=pageSize;}return all}
 
 function updateStatus(){
   const hm=Object.keys(masterItems).length>0,hc=Object.keys(cscartData).length>0,he=Object.keys(exactStock).length>0,hv=Object.keys(verschilData).length>0,hs=salesPeriods.length>0,hch=Object.keys(chinaProducts).length>0;
   setDot('dotMaster',hm);setDot('dotCscart',hc);setDot('dotExact',he);setDot('dotVerschil',hv);setDot('dotSales',hs);setDot('dotChina',hch);
-  document.getElementById('lblMaster').textContent=hm?`Master: ${Object.keys(masterItems).length}`:'Master: not loaded';
-  document.getElementById('lblCscart').textContent=hc?`Cscart: ${Object.keys(cscartData).length}`:'Cscart: not loaded';
-  document.getElementById('lblExact').textContent=he?`Exact: ${Object.keys(exactStock).length}`:'Exact: not loaded';
-  document.getElementById('lblVerschil').textContent=hv?`Verschil: ${Object.keys(verschilData).length} adj.`:'Verschil: not loaded';
+  const ts=t=>t?` · <span style="color:var(--text3)">${timeAgo(t)}</span>`:'';
+  document.getElementById('lblMaster').innerHTML=hm?`Master: ${Object.keys(masterItems).length}${ts(lastUpdated.master)}`:'Master: not loaded';
+  document.getElementById('lblCscart').innerHTML=hc?`Cscart: ${Object.keys(cscartData).length}${ts(lastUpdated.cscart)}`:'Cscart: not loaded';
+  document.getElementById('lblExact').innerHTML=he?`Exact: ${Object.keys(exactStock).length}${ts(lastUpdated.exact)}`:'Exact: not loaded';
+  document.getElementById('lblVerschil').innerHTML=hv?`Verschil: ${Object.keys(verschilData).length}${ts(lastUpdated.verschil)}`:'Verschil: not loaded';
   document.getElementById('lblSales').textContent=hs?`Sales: ${salesPeriods.length} mo`:'Sales: 0 months';
   document.getElementById('lblChina').textContent=hch?`China: ${Object.keys(chinaProducts).length}`:'China: not loaded';
   ['step1','step2','step3','step4'].forEach((id,i)=>document.getElementById(id).classList.toggle('done',[hm,hc,he,hs][i]));
 }
+// Refresh "X ago" labels every minute
+setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings()}
+
+function renderSettings(){
+  document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
+  document.getElementById('settingHideCscart').checked=!!settings.hideCscart;
+  const hint=document.getElementById('verschilStatusHint');
+  const n=Object.keys(verschilData).length;
+  if(!n)hint.textContent='(No Verschil data uploaded yet)';
+  else if(settings.applyVerschil)hint.innerHTML=`<span style="color:var(--green)">●</span> Currently applying ${n} adjustments`;
+  else hint.innerHTML=`<span style="color:var(--text3)">●</span> ${n} adjustments stored but not applied`;
+  applyCscartVisibility();
+  // API key
+  const key=getApiKey();
+  const keyEl=document.getElementById('settingApiKey');
+  const statusEl=document.getElementById('apiKeyStatus');
+  if(key){keyEl.value=key;statusEl.innerHTML='<span style="color:var(--green)">● Key saved</span> — the 🤖 button appears in the bottom-right corner'}
+  else{keyEl.value='';statusEl.innerHTML='<span style="color:var(--text3)">● No key set</span>'}
+  document.getElementById('settingCustomInstructions').value=getCustomInstructions();
+  updateAIFab();
+}
+
+function applyCscartVisibility(){
+  const t=document.querySelector('#tab-stock table');
+  if(t){t.classList.toggle('cs-hidden',!!settings.hideCscart)}
+}
+
+function updateSetting(key,value){
+  settings[key]=value;
+  try{localStorage.setItem('kn_settings',JSON.stringify(settings))}catch(e){}
+  toast(`Setting saved: ${key} = ${value}`);
+  renderSettings();
+  if(mergedData.length)rebuildMerged();
+  if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  if(document.getElementById('tab-simulator').classList.contains('active')&&currentBoatId)renderBoatDetail();
+}
 
 // ═══════════════════════════════════════════════
 // 1. MASTER
@@ -529,7 +703,7 @@ async function loadMaster(input){
       const rows=Object.values(deduped);
       await sb.from('master_items').delete().neq('code','');
       await batchUpsert('master_items',rows);
-      toast(`Master: ${rows.length} products saved`);updateStatus();rebuildMerged();
+      toast(`Master: ${rows.length} products saved`);lastUpdated.master=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='LogItems (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -555,7 +729,7 @@ async function loadCscart(input){
       rows.forEach(r=>{cscartData[r.code]={stock:r.stock,status:r.status}});
       await sb.from('cscart_stock').delete().neq('code','');
       await batchUpsert('cscart_stock',rows);
-      toast(`Cscart: ${rows.length} items saved`);updateStatus();rebuildMerged();
+      toast(`Cscart: ${rows.length} items saved`);lastUpdated.cscart=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Cscart CSV'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -583,7 +757,7 @@ async function loadExactStock(input){
       const rows=Object.values(deduped);
       await sb.from('exact_stock').delete().neq('code','');
       await batchUpsert('exact_stock',rows);
-      toast(`Exact: ${rows.length} items saved`);updateStatus();rebuildMerged();
+      toast(`Exact: ${rows.length} items saved`);lastUpdated.exact=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Exact Stock (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -612,7 +786,7 @@ async function loadVerschil(input){
       const rows=Object.values(deduped);
       await sb.from('verschil_stock').delete().neq('code','');
       if(rows.length)await batchUpsert('verschil_stock',rows);
-      toast(`Verschil: ${rows.length} adjustments saved`);updateStatus();rebuildMerged();
+      toast(`Verschil: ${rows.length} adjustments saved`);lastUpdated.verschil=new Date().toISOString();updateStatus();rebuildMerged();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Verschil (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -624,6 +798,7 @@ function getAvg3Mo(code){const p=salesPeriods;if(!p.length)return 0;const rec=p.
 function getCorrectedExact(code){
   const ex=exactStock[code];
   if(ex===undefined)return undefined;
+  if(!settings.applyVerschil)return ex;
   const v=verschilData[code];
   return v!==undefined?ex-v:ex;
 }
@@ -657,14 +832,28 @@ function renderStockTable(){
   const totalShown=filtered.length;
   document.getElementById('stockCards').innerHTML=`<div class="card"><div class="card-label">Active</div><div class="card-value">${activeFiltered.length}</div></div><div class="card"><div class="card-label">Out of Stock</div><div class="card-value red">${crit}</div></div><div class="card"><div class="card-label">Critical &lt;1 mo</div><div class="card-value orange">${warn}</div></div><div class="card"><div class="card-label">Low &lt;2 mo</div><div class="card-value cyan">${low}</div></div><div class="card"><div class="card-label">OK 2+ mo</div><div class="card-value green">${ok}</div></div>`;
   const badge=document.getElementById('alertBadge');const globalAct=mergedData.filter(r=>r.status==='A');const gac=globalAct.filter(r=>getUrgency(r)==='critical').length+globalAct.filter(r=>getUrgency(r)==='warning').length;badge.textContent=gac;badge.style.display=gac>0?'inline':'none';
-  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td class="col-cs">${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td class="col-cs">${dH}</td><td>${r.avg||'—'}</td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
+  document.getElementById('stockBody').innerHTML=filtered.map(r=>{const u=getUrgency(r),cls=u==='nosale'?'':'urgent-'+u;let dH='';if(r.stock!==null&&r.exact!==null){const d=r.stock-r.exact;if(Math.abs(d)>10)dH=`<span class="stock-diff warn">${d>0?'+':''}${d}</span>`;else if(d!==0)dH=`<span style="color:var(--text3)">${d>0?'+':''}${d}</span>`}let ml;if(r.monthsLeft<0)ml='<span style="color:var(--text3)">—</span>';else if(u==='critical')ml=`<span style="color:var(--red);font-weight:600">${r.monthsLeft}</span>`;else if(u==='warning')ml=`<span style="color:var(--orange);font-weight:600">${r.monthsLeft}</span>`;else if(u==='low')ml=`<span style="color:var(--cyan)">${r.monthsLeft}</span>`;else ml=`<span style="color:var(--green)">${r.monthsLeft}</span>`;return`<tr class="${cls}"><td><span class="st-badge st-${r.status}">${r.status}</span></td><td>${r.code}</td><td style="font-family:var(--font);max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);max-width:280px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td class="col-cs">${r.stock!==null?r.stock:'—'}</td><td>${r.exact!==null?r.exact:'—'}</td><td class="col-cs">${dH}</td><td><div style="display:flex;align-items:center;gap:8px">${r.avg||'—'}${renderSparkline(r.code)}</div></td><td>${ml}</td><td><input class="po-input" value="${esc((poData[r.code]||{}).po||'')}" placeholder="—" onchange="savePo('${r.code}',this.value)"></td><td class="po-date">${(poData[r.code]||{}).date||''}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td><button class="btn" style="padding:2px 6px;font-size:11px;${chinaProducts[r.code]?'color:var(--purple);border-color:var(--purple)':'color:var(--text3)'}" onclick="toggleChina('${r.code}')" title="${chinaProducts[r.code]?'Remove from China list':'Add to China list'}">${chinaProducts[r.code]?'✓':'+'}</button></td></tr>`}).join('');
   document.getElementById('stockCount').textContent=`Showing ${filtered.length} of ${mergedData.length}`;
+  applyCscartVisibility();
 }
 function doSort(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true}renderStockTable()}
-function toggleCSColumns(){
-  const t=document.getElementById('stockTable')||document.querySelector('#tab-stock table');
-  const btn=document.getElementById('btnToggleCS');
-  if(t){t.classList.toggle('cs-hidden');btn.textContent=t.classList.contains('cs-hidden')?'Show Cscart':'Hide Cscart'}
+
+function getRecentSales(code,n=6){const p=salesPeriods.slice(-n);return p.map(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);return{period:per,qty:it?it.quantity:0}})}
+function renderSparkline(code){
+  const data=getRecentSales(code,6);
+  if(data.length<2||data.every(d=>d.qty===0))return'';
+  const max=Math.max(...data.map(d=>d.qty),1);
+  const w=58,h=18;
+  const pts=data.map((d,i)=>{const x=(i/(data.length-1))*w;const y=h-(d.qty/max)*(h-2)+1;return`${x.toFixed(1)},${y.toFixed(1)}`}).join(' ');
+  // Compare latest to median of prior months (robust to spikes, captures recent direction)
+  const latest=data[data.length-1].qty;
+  const prior=data.slice(0,-1).map(d=>d.qty).sort((a,b)=>a-b);
+  const median=prior.length%2?prior[Math.floor(prior.length/2)]:(prior[prior.length/2-1]+prior[prior.length/2])/2;
+  const relDiff=median>0.5?(latest-median)/median:0;
+  const color=relDiff>0.15?'#22c55e':relDiff<-0.15?'#ef4444':'#8896a8';
+  const lastY=h-(latest/max)*(h-2)+1;
+  const tip=data.map(d=>`${d.period}: ${d.qty}`).join(' · ');
+  return`<svg width="60" height="20" viewBox="0 0 60 20" style="vertical-align:middle;flex-shrink:0"><title>${tip}</title><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5"/><circle cx="${w.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2" fill="${color}"/></svg>`;
 }
 
 // ═══════════════════════════════════════════════
@@ -688,6 +877,7 @@ async function loadSalesCSV(input){
       salesHistory[period]=dbRows.map(r=>({item_code:r.item_code,description:r.description,quantity:r.quantity,sales_value:r.sales_value,sales_amount:r.sales_amount}));
     }
     salesPeriods=Object.keys(salesHistory).sort();
+    prepareSalesData();
     toast(`Sales: ${files.length} file(s) saved`);updateStatus();if(mergedData.length)rebuildMerged();if(document.getElementById('tab-sales').classList.contains('active'))initSalesDash();
   }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Load Monthly CSV'}
   input.value='';
@@ -696,21 +886,58 @@ async function removePeriod(p){
   if(!confirm('Remove '+p+'?'))return;
   await sb.from('sales_monthly').delete().eq('period',p);
   delete salesHistory[p];salesPeriods=Object.keys(salesHistory).sort();
+  prepareSalesData();
   toast(`Removed ${p}`);updateStatus();initSalesDash();if(mergedData.length)rebuildMerged();
 }
 function initSalesDash(){
   if(!salesPeriods.length){document.getElementById('salesEmpty').style.display='block';document.getElementById('salesDash').style.display='none';return}
   document.getElementById('salesEmpty').style.display='none';document.getElementById('salesDash').style.display='block';
   document.getElementById('periodTags').innerHTML=salesPeriods.map(p=>`<span class="period-tag">${p}<span class="del" onclick="removePeriod('${p}')">×</span></span>`).join('');
-  const allSkus={};salesPeriods.forEach(p=>{(salesHistory[p]||[]).forEach(r=>{if(!allSkus[r.item_code])allSkus[r.item_code]={item_code:r.item_code,description:r.description};if(!allSkus[r.item_code].description&&r.description)allSkus[r.item_code].description=r.description;allSkus[r.item_code]['q_'+p]=r.quantity;allSkus[r.item_code]['s_'+p]=r.sales_amount})});
-  window._sm=Object.values(allSkus);window._sp=salesPeriods;renderSalesTable();renderTopChart();
+  prepareSalesData();
+  // Populate filter dropdowns
+  const sups=[...new Set(window._sm.map(r=>r.supplier))].filter(Boolean).sort();
+  const grps=[...new Set(window._sm.map(r=>r.item_group))].filter(Boolean).sort();
+  const supSel=document.getElementById('salesSupplier'),grpSel=document.getElementById('salesGroup');
+  const curSup=supSel.value,curGrp=grpSel.value;
+  supSel.innerHTML='<option value="">All ('+sups.length+')</option>'+sups.map(s=>`<option value="${esc(s)}" ${s===curSup?'selected':''}>${esc(s)}</option>`).join('');
+  grpSel.innerHTML='<option value="">All ('+grps.length+')</option>'+grps.map(g=>`<option value="${esc(g)}" ${g===curGrp?'selected':''}>${esc(g)}</option>`).join('');
+  renderSalesTable();renderTopChart();
 }
-function renderSalesTable(){const P=window._sp||[];let data=[...(window._sm||[])];const search=(document.getElementById('salesSearch').value||'').toLowerCase(),sort=document.getElementById('salesSort').value;if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));const lat=P[P.length-1];
+function renderSalesTable(){const P=window._sp||[];let data=[...(window._sm||[])];const search=(document.getElementById('salesSearch').value||'').toLowerCase(),sort=document.getElementById('salesSort').value,supF=document.getElementById('salesSupplier').value,grpF=document.getElementById('salesGroup').value;
+  if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(supF)data=data.filter(r=>r.supplier===supF);
+  if(grpF)data=data.filter(r=>r.item_group===grpF);
+  const lat=P[P.length-1];
   data=data.map(r=>{r._lq=r['q_'+lat]||0;const rec=P.slice(-3);let s=0;rec.forEach(p=>{s+=(r['q_'+p]||0)});r._a3=rec.length>0?Math.round(s/rec.length*10)/10:0;r._g=r._a3>0?((r._lq-r._a3)/r._a3*100):0;return r});if(sort==='latest_desc')data.sort((a,b)=>b._lq-a._lq);else if(sort==='latest_asc')data.sort((a,b)=>a._lq-b._lq);else if(sort==='growth')data.sort((a,b)=>b._g-a._g);else data.sort((a,b)=>a._g-b._g);
   document.getElementById('salesHead').innerHTML='<th>Code</th><th style="min-width:180px">Description</th>'+P.map(p=>`<th>${p}</th>`).join('')+'<th>3mo Avg</th><th>vs Avg</th>';
   document.getElementById('salesBody').innerHTML=data.slice(0,200).map(r=>{const g=r._g,gh=`<td style="color:${g>0?'var(--green)':g<0?'var(--red)':'var(--text3)'};font-weight:500">${r._a3>0?(g>0?'+':'')+g.toFixed(0)+'%':'—'}</td>`;return`<tr class="clickable-row" onclick="showTrend('${r.item_code}','${esc(r.description||'')}')"><td>${r.item_code}</td><td style="font-family:var(--font)">${esc(r.description||'')}</td>${P.map(p=>`<td>${r['q_'+p]||0}</td>`).join('')}<td style="color:var(--cyan);font-weight:500">${r._a3}</td>${gh}</tr>`}).join('')}
 function renderTopChart(){const P=window._sp||[];if(!P.length)return;const lat=P[P.length-1],d=(window._sm||[]).map(r=>({l:r.item_code,q:r['q_'+lat]||0})).filter(r=>r.q>0).sort((a,b)=>b.q-a.q).slice(0,20);if(topCI)topCI.destroy();topCI=new Chart(document.getElementById('topChart'),{type:'bar',data:{labels:d.map(r=>r.l),datasets:[{data:d.map(r=>r.q),backgroundColor:'rgba(59,130,246,.7)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{display:false},ticks:{color:'#c8d0dc',font:{family:'IBM Plex Mono',size:10}}}}}})}
 function showTrend(code,desc){const P=window._sp||[];const item=(window._sm||[]).find(r=>r.item_code===code);if(!item)return;document.getElementById('trendTitle').textContent=`${code} — ${desc}`;if(trendCI)trendCI.destroy();trendCI=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:P,datasets:[{data:P.map(p=>item['q_'+p]||0),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.15)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#3b82f6'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8896a8',font:{family:'IBM Plex Mono',size:10}}}}}});document.querySelectorAll('.clickable-row').forEach(r=>{r.classList.toggle('highlight-row',r.cells[0].textContent===code)})}
+
+function exportSalesCSV(){
+  const P=window._sp||[];if(!P.length){toast('No sales data to export','error');return}
+  let data=[...(window._sm||[])];
+  const search=(document.getElementById('salesSearch').value||'').toLowerCase(),supF=document.getElementById('salesSupplier').value,grpF=document.getElementById('salesGroup').value;
+  if(search)data=data.filter(r=>r.item_code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(supF)data=data.filter(r=>r.supplier===supF);
+  if(grpF)data=data.filter(r=>r.item_group===grpF);
+  // Build CSV
+  const headers=['Code','Description','Supplier','Group',...P.map(p=>'Qty_'+p),'3mo_Avg','vs_Avg_pct'];
+  const rows=data.map(r=>{
+    const rec=P.slice(-3);let s=0;rec.forEach(p=>{s+=(r['q_'+p]||0)});
+    const a3=rec.length>0?Math.round(s/rec.length*10)/10:0;
+    const lq=r['q_'+P[P.length-1]]||0;
+    const g=a3>0?Math.round((lq-a3)/a3*100):0;
+    return[r.item_code,r.description||'',r.supplier||'',r.item_group||'',...P.map(p=>r['q_'+p]||0),a3,g];
+  });
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='kenners_sales_export_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} products`);
+}
 
 // ═══════════════════════════════════════════════
 // SUPPLIERS
@@ -760,12 +987,22 @@ async function clearChinaData(){if(!confirm('Clear China product list?'))return;
 
 function getSeasonFactor(group,mi){const s=chinaSeasonality[group];return s&&s.factors&&s.factors[mi]?s.factors[mi]:1}
 function projectStock(code,curStock,avg,group,orderQty,arrDate){
+  // Single-delivery wrapper for backward compatibility
+  const dels=arrDate&&orderQty>0?[{date:arrDate,qty:orderQty}]:[];
+  return projectStockMulti(code,curStock,avg,group,dels);
+}
+function projectStockMulti(code,curStock,avg,group,deliveries){
   const now=new Date(),months=[];let stock=curStock;
-  for(let i=0;i<15;i++){const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
-    let recv=0;if(arrDate&&orderQty>0&&d.getMonth()===arrDate.getMonth()&&d.getFullYear()===arrDate.getFullYear())recv=orderQty;
+  for(let i=0;i<15;i++){
+    const d=addMonths(now,i),mi=d.getMonth(),factor=getSeasonFactor(group,mi),sales=Math.round(avg*factor*10)/10;
+    let recv=0;
+    deliveries.forEach(del=>{if(del.qty>0&&del.date&&d.getMonth()===del.date.getMonth()&&d.getFullYear()===del.date.getFullYear())recv+=del.qty});
     stock=stock-sales;
     if(recv>0)stock=Math.max(stock,0)+recv;
-    months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});}return months}
+    months.push({date:d,label:fmtDate(d),stock:Math.round(stock*10)/10,sales,receive:recv});
+  }
+  return months;
+}
 
 function getChinaAvg(code){
   const p=salesPeriods;if(!p.length)return{avg:0,activeMo:0,totalMo:0};
@@ -773,6 +1010,17 @@ function getChinaAvg(code){
   rec.forEach(per=>{const it=(salesHistory[per]||[]).find(r=>r.item_code===code);if(it&&it.quantity>0){t+=it.quantity;activeMo++}});
   return{avg:activeMo>0?Math.round(t/activeMo*10)/10:0,activeMo,totalMo:rec.length};
 }
+
+function getSuggestedQty(info){
+  if(!info||info.avg<=0)return{qty:null,label:'no data',breakdown:''};
+  const need=info.avg*chinaCoverage;
+  const stock=Math.max(info.currentStock,0);
+  const qty=Math.max(0,Math.ceil(need-stock));
+  if(qty===0)return{qty:0,label:'covered',breakdown:`stock ≥ ${need.toFixed(0)}`};
+  return{qty,label:'',breakdown:`${info.avg} × ${chinaCoverage} − ${info.currentStock}`};
+}
+
+function setChinaCoverage(v){chinaCoverage=parseInt(v)||6;renderChinaTable()}
 
 function getStockoutInfo(code){
   const cp=chinaProducts[code];if(!cp)return null;const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
@@ -803,16 +1051,20 @@ function renderChinaTable(){
   if(supplierF)items=items.filter(r=>r.supplier===supplierF);
   if(groupF)items=items.filter(r=>r.group===groupF);
   if(filter==='active')items=items.filter(r=>r.status==='A');else if(filter==='late')items=items.filter(r=>r.orderByDate&&r.orderByDate<now);else if(filter==='soon')items=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1));
-  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
+  items.sort((a,b)=>{let va,vb;switch(cSortCol){case'code':va=a.code;vb=b.code;break;case'description':va=a.description;vb=b.description;break;case'supplier':va=a.supplier;vb=b.supplier;break;case'group':va=a.group;vb=b.group;break;case'stock':va=a.currentStock;vb=b.currentStock;break;case'avg':va=a.avg;vb=b.avg;break;case'suggested':va=(getSuggestedQty(a).qty??-1);vb=(getSuggestedQty(b).qty??-1);break;case'orderby':va=a.orderByDate?a.orderByDate.getTime():9e15;vb=b.orderByDate?b.orderByDate.getTime():9e15;break;default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15}if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}return cSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0)});
   const late=items.filter(r=>r.orderByDate&&r.orderByDate<now).length,soon=items.filter(r=>r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1)).length,safe=items.filter(r=>!r.stockoutDate||r.orderByDate>=addMonths(now,1)).length,noData=items.filter(r=>r.avg<=0).length;
   document.getElementById('chinaCards').innerHTML=`<div class="card"><div class="card-label">China Products</div><div class="card-value">${codes.length}</div></div><div class="card"><div class="card-label">Order Overdue</div><div class="card-value red">${late}</div></div><div class="card"><div class="card-label">Order Within 30d</div><div class="card-value orange">${soon}</div></div><div class="card"><div class="card-label">Safe</div><div class="card-value green">${safe}</div></div><div class="card"><div class="card-label">No Sales Data</div><div class="card-value" style="color:var(--text3)">${noData}</div></div>`;
   const cb=document.getElementById('chinaBadge');cb.textContent=late;cb.style.display=late>0?'inline':'none';
   document.getElementById('chinaBody').innerHTML=items.map(r=>{const isLate=r.orderByDate&&r.orderByDate<now,isSoon=r.orderByDate&&r.orderByDate>=now&&r.orderByDate<addMonths(now,1),cls=isLate?'urgent-critical':isSoon?'urgent-warning':'';
     let soH;if(r.avg<=0)soH='<span style="color:var(--text3)">No data</span>';else if(!r.stockoutDate)soH='<span style="color:var(--green)">15+ mo</span>';else soH=`<span style="color:${isLate?'var(--red)':isSoon?'var(--orange)':'var(--text)'};font-weight:${isLate||isSoon?'600':'400'}">${fmtDate(r.stockoutDate)}</span>`;
+    const sug=getSuggestedQty(r);let sH;
+    if(sug.qty===null)sH='<span style="color:var(--text3);font-size:11px">no data</span>';
+    else if(sug.qty===0)sH='<span style="color:var(--text3);font-size:11px">covered</span>';
+    else sH=`<span style="color:var(--purple);font-weight:600">${sug.qty.toLocaleString()}</span><br><span style="font-size:9px;color:var(--text3);font-family:var(--font)">${sug.breakdown}</span>`;
     let obH;if(!r.orderByDate)obH='—';else if(isLate)obH=`<span style="color:var(--red);font-weight:600">${fmtDate(r.orderByDate)} ⚠</span>`;else obH=`<span style="color:${isSoon?'var(--orange)':'var(--text2)'}">${fmtDate(r.orderByDate)}</span>`;
     const useP=r.projection,maxS=Math.max(...useP.slice(0,12).map(m=>Math.abs(m.stock)),1);
     const miniH=useP.slice(0,12).map(m=>{const h=Math.min(Math.abs(m.stock)/maxS*22,22),col=m.stock<=0?'var(--red)':m.stock<r.avg?'var(--orange)':'var(--green)';return`<div class="tm" style="height:${Math.max(h,2)}px;background:${col}" title="${m.label}: ${m.stock}"></div>`}).join('');
-    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
+    return`<tr class="${cls}"><td>${r.code}</td><td style="font-family:var(--font);max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${esc(r.description)}">${esc(r.description)}</td><td style="font-family:var(--font);max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--text2)" title="${esc(r.supplier)}">${esc(r.supplier)}</td><td style="font-family:var(--font);font-size:11px;color:var(--text2)">${esc(r.group||'')}</td><td>${r.currentStock}</td><td>${r.avg?r.avg:'—'}<br><span style="font-size:9px;color:${r.activeMo>=6?'var(--green)':r.activeMo>=3?'var(--orange)':'var(--text3)'}">${r.activeMo}/${r.totalMo} mo</span></td><td style="background:rgba(167,139,250,.05)">${sH}</td><td>${soH}</td><td>${obH}</td><td><div class="timeline-mini">${miniH}</div></td><td><button class="btn" style="padding:2px 6px;font-size:11px;color:var(--text3);border-color:var(--border)" onclick="toggleChina('${r.code}')" title="Remove from China">×</button></td></tr>`}).join('');
 }
 function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=true}renderChinaTable()}
 
@@ -856,6 +1108,7 @@ async function newBoat(){
   toast(`Boat "${name}" created`);renderSimulator();
 }
 function selectBoat(id){currentBoatId=id;currentPOId=null;renderSimulator()}
+function toggleIncludeOtherBoats(checked){includeOtherBoats=checked;renderBoatDetail()}
 async function deleteBoat(id){
   const b=savedBoats[id];if(!b)return;
   if(!confirm(`Delete "${b.name}" and all its POs?`))return;
@@ -916,6 +1169,16 @@ function renderBoatDetail(){
   document.getElementById('boatName').value=b.name||'';
   document.getElementById('boatArrival').value=b.arrival_date||'';
   document.getElementById('boatNotes').value=b.notes||'';
+  const cb=document.getElementById('toggleOtherBoats');if(cb)cb.checked=includeOtherBoats;
+
+  // Count other future boats for the hint
+  const now=new Date();
+  const otherFuture=Object.values(savedBoats).filter(x=>x.id!==currentBoatId&&x.arrival_date&&new Date(x.arrival_date)>=now);
+  const hint=document.getElementById('otherBoatsHint');
+  if(hint){
+    if(otherFuture.length===0)hint.textContent='(no other future boats)';
+    else hint.innerHTML='('+otherFuture.map(x=>`${esc(x.name)} → ${fmtDateShort(new Date(x.arrival_date))}`).join(', ')+')';
+  }
 
   // PO tabs
   const pos=Object.values(b.orders);
@@ -982,12 +1245,20 @@ function renderBoatTotals(){
     if(Object.keys(po.items).length)poSummaries.push(`${esc(po.name)}: ${sym}${poVal.toFixed(0)} (€${eurVal.toFixed(0)})`);
   });
 
+  // Validate arrival date
+  let arrDisplay='—',arrInvalid=false;
+  if(b.arrival_date){
+    const d=new Date(b.arrival_date);
+    if(isNaN(d.getTime())||d.getFullYear()<2000||d.getFullYear()>2100){arrDisplay='⚠ Invalid date';arrInvalid=true}
+    else arrDisplay=fmtDateShort(d);
+  }
+
   document.getElementById('boatTotals').innerHTML=`
     <div class="stat"><span class="stat-lbl">POs</span><span class="stat-val">${pos.length}</span></div>
     <div class="stat"><span class="stat-lbl">Products</span><span class="stat-val">${totalProducts}</span></div>
     <div class="stat"><span class="stat-lbl">Total units</span><span class="stat-val">${totalUnits.toLocaleString()}</span></div>
     <div class="stat"><span class="stat-lbl">Total (EUR)</span><span class="stat-val purple">€${totalEUR.toLocaleString(undefined,{maximumFractionDigits:0})}</span></div>
-    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px">${b.arrival_date?fmtDateShort(new Date(b.arrival_date)):'—'}</span></div>`;
+    <div class="stat"><span class="stat-lbl">Arrival</span><span class="stat-val" style="font-size:13px${arrInvalid?';color:var(--orange)':''}">${arrDisplay}</span></div>`;
 }
 
 // ═══ PO ITEM CRUD ═══
@@ -1072,13 +1343,13 @@ function renderBoatProjections(){
       <div class="sim-proj-header">
         <div>
           <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
-          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months</div>
+          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months${info.otherDels&&info.otherDels.length?' · <span style="color:var(--cyan)">also: '+info.otherDels.map(d=>'+'+d.qty+' from '+esc(d.boatName)+' '+fmtDateShort(d.date)).join(', ')+'</span>':''}</div>
         </div>
       </div>
-      <div class="sim-rows-label">WITHOUT ORDER</div>
+      <div class="sim-rows-label">${includeOtherBoats&&info.otherDels&&info.otherDels.length?'WITHOUT THIS BOAT (other boats included)':'WITHOUT ORDER'}</div>
       <div class="sim-grid">${headerRow}</div>
       <div class="sim-grid">${beforeRow}</div>
-      <div class="sim-rows-label" style="color:var(--purple)">WITH ORDER (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
+      <div class="sim-rows-label" style="color:var(--purple)">WITH THIS BOAT (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
       <div class="sim-grid">${afterRow}</div>
     </div>`;
   }).join('');
@@ -1086,17 +1357,36 @@ function renderBoatProjections(){
 
 function fmtDateShort(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
 
+function getOtherBoatDeliveries(code,excludeBoatId){
+  // Return [{date, qty}] for this product across all OTHER boats with future arrival dates
+  const deliveries=[];
+  if(!includeOtherBoats)return deliveries;
+  const now=new Date();
+  Object.values(savedBoats).forEach(boat=>{
+    if(boat.id===excludeBoatId)return;
+    if(!boat.arrival_date)return;
+    const arr=new Date(boat.arrival_date);
+    if(arr<now)return; // skip past arrivals
+    let qty=0;
+    Object.values(boat.orders).forEach(po=>{if(po.items[code])qty+=po.items[code].qty});
+    if(qty>0)deliveries.push({date:arr,qty,boatName:boat.name});
+  });
+  return deliveries;
+}
+
 function getStockoutInfoForOrder(code,orderQty,arrDate){
   const cp=chinaProducts[code];if(!cp)return null;
   const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
   const curStock=ex!==undefined?ex:(cs?cs.stock:0);
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
-  const projBefore=projectStock(code,curStock,avg,group,0,null);
-  const projAfter=orderQty>0&&arrDate?projectStock(code,curStock,avg,group,orderQty,arrDate):projBefore;
+  const otherDels=getOtherBoatDeliveries(code,currentBoatId);
+  const projBefore=projectStockMulti(code,curStock,avg,group,otherDels);
+  const ownDel=orderQty>0&&arrDate?[{date:arrDate,qty:orderQty}]:[];
+  const projAfter=projectStockMulti(code,curStock,avg,group,[...otherDels,...ownDel]);
   let improvement=0;
   for(let i=0;i<projBefore.length;i++){if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++}
-  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo};
+  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo,otherDels};
 }
 
 function exportBoatCSV(){
@@ -1116,6 +1406,232 @@ function exportBoatCSV(){
   const a=document.createElement('a');
   a.href=url;a.download=(b.name||'boat').replace(/[^a-z0-9]/gi,'_')+'.csv';
   a.click();URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════
+// AI ASSISTANT
+// ═══════════════════════════════════════════════
+let aiHistory=[];
+
+function saveApiKey(){
+  const key=document.getElementById('settingApiKey').value.trim();
+  if(!key||!key.startsWith('sk-')){toast('Invalid API key — should start with sk-','error');return}
+  try{localStorage.setItem('kn_api_key',key)}catch(e){}
+  toast('API key saved');renderSettings();updateAIFab();
+}
+function clearApiKey(){
+  try{localStorage.removeItem('kn_api_key')}catch(e){}
+  document.getElementById('settingApiKey').value='';
+  toast('API key cleared');renderSettings();updateAIFab();
+}
+function getApiKey(){try{return localStorage.getItem('kn_api_key')||''}catch(e){return''}}
+function getCustomInstructions(){try{return localStorage.getItem('kn_custom_instructions')||''}catch(e){return''}}
+function saveCustomInstructions(){
+  const text=document.getElementById('settingCustomInstructions').value;
+  try{localStorage.setItem('kn_custom_instructions',text)}catch(e){}
+  toast('Custom instructions saved');
+}
+function updateAIFab(){document.getElementById('aiFab').classList.toggle('has-key',!!getApiKey())}
+
+function toggleAIPanel(){
+  const p=document.getElementById('aiPanel');
+  p.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════
+// AI DATA TOOLS (function calling)
+// ═══════════════════════════════════════════════
+function supplierGroupFor(name){
+  // Returns all supplier names sharing the first word of the fuzzy-matched supplier
+  const all=[...new Set(mergedData.map(r=>r.supplier))].filter(Boolean);
+  const matched=fuzzyFindSimple(all,(name||'').toLowerCase());
+  if(!matched)return null;
+  const fw=matched.toLowerCase().split(/\s+/)[0];
+  return{matched,names:all.filter(s=>s.toLowerCase().split(/\s+/)[0]===fw)};
+}
+function fuzzyFindSimple(list,msg){
+  let m=list.find(s=>msg.includes(s.toLowerCase()));
+  if(m)return m;
+  const words=msg.split(/[\s,.:!?]+/).filter(w=>w.length>=4);
+  let best=null,bestLen=0;
+  for(const item of list){
+    const iws=item.toLowerCase().split(/\s+/).filter(w=>w.length>=3);
+    for(const uw of words)for(const iw of iws){
+      if(iw.startsWith(uw)||uw.startsWith(iw)){const l=Math.min(uw.length,iw.length);if(l>bestLen){bestLen=l;best=item}}
+    }
+  }
+  return best;
+}
+
+function buildOverviewString(){
+  const act=mergedData.filter(r=>r.status==='A');
+  const crit=act.filter(r=>getUrgency(r)==='critical').length;
+  const warn=act.filter(r=>getUrgency(r)==='warning').length;
+  const low=act.filter(r=>getUrgency(r)==='low').length;
+  const sm=window._sm||[],P=window._sp||[];
+  const suppliers=[...new Set(sm.map(r=>r.supplier))].filter(Boolean).sort();
+  const groups=[...new Set(sm.map(r=>r.item_group))].filter(Boolean).sort();
+  return `CURRENT DASHBOARD STATE:
+- ${act.length} active products: ${crit} out of stock, ${warn} critical (<1mo), ${low} low (<2mo)
+- Sales data: ${P.length} months (${P[0]||'none'} to ${P[P.length-1]||'none'})
+- China products: ${Object.keys(chinaProducts).length} | Boats: ${Object.keys(savedBoats).length}
+- Suppliers (${suppliers.length}): ${suppliers.join(', ')}
+- Item groups (${groups.length}): ${groups.join(', ')}`;
+}
+
+const AI_TOOLS=[
+  {name:'query_products',description:'Query products with flexible filters. Returns stock, 3-month avg sales, months left, China status, and (by default) full monthly sales history. This is your main tool — use it for any question about specific products, suppliers, or groups. Supplier matching is fuzzy (e.g. "rommels" matches "Rommelsbacher ElektroHausgeräte GmbH") and automatically includes name variants.',
+    input_schema:{type:'object',properties:{
+      supplier:{type:'string',description:'Filter by supplier (partial match, e.g. "rommels")'},
+      group:{type:'string',description:'Filter by exact item group name'},
+      codes:{type:'array',items:{type:'string'},description:'Specific product codes to fetch'},
+      search:{type:'string',description:'Text search in code or description'},
+      urgency:{type:'string',enum:['critical','warning','low','ok'],description:'critical=out of stock(<=0), warning=<1mo, low=<2mo, ok=2+mo'},
+      china_only:{type:'boolean',description:'Only China-flagged products'},
+      include_monthly_sales:{type:'boolean',description:'Include month-by-month sales (default true). Set false when you only need current stock to save space.'}
+    },required:[]}},
+  {name:'get_china_planning',description:'Get China products needing reorder, with suggested order quantities (coverage-target based), stockout dates and order-by dates. Optionally filter by supplier/group.',
+    input_schema:{type:'object',properties:{supplier:{type:'string'},group:{type:'string'}},required:[]}},
+  {name:'get_boats',description:'Get all saved boats (containers) with their purchase orders, products, quantities, currencies, exchange rates and totals.',
+    input_schema:{type:'object',properties:{},required:[]}}
+];
+
+function execTool(name,input){
+  try{
+    if(name==='query_products')return toolQueryProducts(input||{});
+    if(name==='get_china_planning')return toolChinaPlanning(input||{});
+    if(name==='get_boats')return toolBoats();
+    return{error:'Unknown tool: '+name};
+  }catch(e){return{error:e.message}}
+}
+
+function toolQueryProducts(input){
+  const P=window._sp||[],sm=window._sm||[];
+  const includeMonthly=input.include_monthly_sales!==false;
+  let results=mergedData.slice();
+  let supplierNote='';
+  if(input.supplier){
+    const sg=supplierGroupFor(input.supplier);
+    if(sg){results=results.filter(r=>sg.names.includes(r.supplier));supplierNote=sg.matched}
+    else results=results.filter(r=>(r.supplier||'').toLowerCase().includes(input.supplier.toLowerCase()));
+  }
+  if(input.group)results=results.filter(r=>(r.group||'').toLowerCase()===input.group.toLowerCase());
+  if(input.codes&&input.codes.length){const set=new Set(input.codes.map(c=>String(c)));results=results.filter(r=>set.has(r.code))}
+  if(input.search){const q=input.search.toLowerCase();results=results.filter(r=>r.code.toLowerCase().includes(q)||(r.description||'').toLowerCase().includes(q))}
+  if(input.urgency)results=results.filter(r=>getUrgency(r)===input.urgency);
+  if(input.china_only)results=results.filter(r=>chinaProducts[r.code]);
+  const total=results.length;
+  const limited=results.slice(0,250);
+  const products=limited.map(r=>{
+    const o={code:r.code,description:r.description||'',supplier:r.supplier||'',group:r.group||'',status:r.status,exact_stock:r.exact,avg_mo:r.avg,months_left:r.monthsLeft<0?null:r.monthsLeft,is_china:!!chinaProducts[r.code]};
+    if(includeMonthly){const sr=sm.find(s=>s.item_code===r.code);o.monthly_sales=sr?P.map(p=>sr['q_'+p]||0):null;if(sr)o.sales_months=P}
+    return o;
+  });
+  return{count:total,returned:products.length,truncated:total>250,matched_supplier:supplierNote||undefined,products};
+}
+
+function toolChinaPlanning(input){
+  let infos=Object.keys(chinaProducts).map(c=>getStockoutInfo(c)).filter(Boolean);
+  if(input.supplier){const sg=supplierGroupFor(input.supplier);if(sg)infos=infos.filter(r=>sg.names.includes(r.supplier))}
+  if(input.group)infos=infos.filter(r=>(r.group||'').toLowerCase()===input.group.toLowerCase());
+  const products=infos.map(r=>{const sug=getSuggestedQty(r);return{code:r.code,description:r.description,supplier:r.supplier,group:r.group,current_stock:r.currentStock,avg_mo:r.avg,active_months:`${r.activeMo}/${r.totalMo}`,suggested_qty:sug.qty,lead_time_days:r.leadTime,stockout:r.stockoutDate?fmtDate(r.stockoutDate):null,order_by:r.orderByDate?fmtDate(r.orderByDate):null}});
+  return{coverage_months:chinaCoverage,count:products.length,products};
+}
+
+function toolBoats(){
+  return Object.values(savedBoats).map(b=>({name:b.name,arrival_date:b.arrival_date,notes:b.notes,
+    purchase_orders:Object.values(b.orders).map(po=>({name:po.name,supplier:po.supplier,currency:po.currency,exchange_rate:po.exchange_rate,
+      items:Object.keys(po.items).map(code=>({code,description:(masterItems[code]||{}).description||'',qty:po.items[code].qty,unit_price:po.items[code].price}))}))}));
+}
+
+const AI_SYSTEM=`You are a purchasing assistant for Kenners, a Dutch e-commerce company selling kitchen appliances, drones, and accessories, integrated into their purchasing dashboard.
+
+You have TOOLS to fetch live data. Always use them to get real numbers — never guess product codes or quantities. Call tools as needed, including multiple times, to fully answer a question.
+
+Key facts:
+- Main stock source is Exact (verschil-corrected). Months Left = Exact stock / 3-month avg sales.
+- Negative stock = backorders (customers waiting) — ALWAYS prioritize these in any order.
+- China products have ~120 day lead time. suggested_qty is based on the user's coverage target.
+- When drafting POs: group by supplier, show code, description, suggested qty, reasoning, and totals.
+- Be concise and use tables. Respond in the user's language (Portuguese or English).
+- A product with high avg_mo but low/zero/negative stock is an urgent reorder regardless of anything else.`;
+
+const QUICK_PROMPTS={
+  stock:'Give me an overview of my current stock situation. How many products are critical? Which suppliers have the most problems? What should I prioritize today?',
+  urgent:'List the most urgent products I need to order right now (out of stock or critical, especially backorders). Group by supplier and explain why each is urgent.',
+  trends:'Analyze my overall sales trends. Which products are growing, which are declining? Any seasonal patterns or anomalies?',
+  po:'Draft a purchase order for the most urgent China products. Group by supplier, include suggested quantities and reasoning, and estimate total cost.',
+  budget:'I have a budget of EUR 10,000 for my next China order. How should I allocate it? Prioritize by urgency (running out soonest) and sales volume.'
+};
+function aiQuick(key){const msg=QUICK_PROMPTS[key];if(msg){document.getElementById('aiInput').value=msg;sendAI()}}
+
+async function sendAI(){
+  const input=document.getElementById('aiInput');
+  const msg=input.value.trim();if(!msg)return;
+  const key=getApiKey();
+  if(!key){toast('Set your API key in Settings first','error');return}
+  aiHistory.push({role:'user',content:msg});
+  input.value='';renderAIMessages();
+  const typingEl=document.getElementById('aiTyping');
+  typingEl.style.display='block';typingEl.textContent='Claude is thinking...';
+  document.getElementById('aiSendBtn').disabled=true;
+
+  try{
+    const customInst=getCustomInstructions();
+    const systemPrompt=AI_SYSTEM+'\n\n'+buildOverviewString()+(customInst?'\n\nUSER CUSTOM INSTRUCTIONS:\n'+customInst:'');
+    // Rebuild API conversation from display history (text only), last 20 turns
+    let apiMessages=aiHistory.filter(m=>m.role==='user'||m.role==='assistant').slice(-20).map(m=>({role:m.role,content:m.content}));
+    let totalIn=0,totalOut=0,finalText='',guard=0;
+
+    while(guard++<8){
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:3000,system:systemPrompt,tools:AI_TOOLS,messages:apiMessages})
+      });
+      if(!resp.ok){const err=await resp.json().catch(()=>({}));throw new Error(err.error?.message||`API error ${resp.status}`)}
+      const data=await resp.json();
+      totalIn+=data.usage?.input_tokens||0;totalOut+=data.usage?.output_tokens||0;
+      apiMessages.push({role:'assistant',content:data.content});
+      const textBlocks=data.content.filter(c=>c.type==='text').map(c=>c.text);
+      if(textBlocks.length)finalText=textBlocks.join('\n');
+      const toolUses=data.content.filter(c=>c.type==='tool_use');
+      if(data.stop_reason!=='tool_use'||!toolUses.length)break;
+      typingEl.textContent='Claude is checking the data ('+toolUses.map(t=>t.name).join(', ')+')...';
+      const toolResults=toolUses.map(tu=>({type:'tool_result',tool_use_id:tu.id,content:JSON.stringify(execTool(tu.name,tu.input))}));
+      apiMessages.push({role:'user',content:toolResults});
+    }
+    const costTotal=totalIn/1e6*3+totalOut/1e6*15;
+    aiHistory.push({role:'assistant',content:finalText||'(no text response)',tokens_in:totalIn,tokens_out:totalOut,cost:costTotal});
+  }catch(err){
+    aiHistory.push({role:'assistant',content:`⚠ Error: ${err.message}`});
+  }finally{
+    typingEl.style.display='none';typingEl.textContent='Claude is thinking...';
+    document.getElementById('aiSendBtn').disabled=false;
+    renderAIMessages();
+  }
+}
+
+
+function renderAIMessages(){
+  const el=document.getElementById('aiMessages');
+  el.innerHTML='<div class="ai-msg system">Ask me about your stock, sales trends, or purchasing decisions. I can see all your dashboard data.</div>'+
+    aiHistory.map(m=>{
+      if(m.role==='user')return`<div class="ai-msg user"><div class="ai-bubble">${esc(m.content)}</div></div>`;
+      const costLine=m.cost!==undefined?`<div style="font-size:10px;color:var(--text3);margin-top:8px;border-top:1px solid var(--border);padding-top:4px">${m.tokens_in} in + ${m.tokens_out} out · $${m.cost.toFixed(4)}</div>`:'';
+      return`<div class="ai-msg assistant"><div class="ai-bubble">${formatAIResponse(m.content)}${costLine}</div></div>`;
+    }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function formatAIResponse(text){
+  return esc(text)
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`(.*?)`/g,'<code style="background:var(--bg4);padding:1px 4px;border-radius:3px;font-family:var(--mono);font-size:11px">$1</code>')
+    .replace(/^### (.+)$/gm,'<div style="font-size:13px;font-weight:600;color:#fff;margin:10px 0 4px">$1</div>')
+    .replace(/^## (.+)$/gm,'<div style="font-size:14px;font-weight:600;color:#fff;margin:12px 0 6px">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="padding-left:12px">• $1</div>')
+    .replace(/\n/g,'<br>');
 }
 </script>
 </body>
