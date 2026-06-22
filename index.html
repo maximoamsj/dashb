@@ -1238,6 +1238,15 @@ async function markPOReceived(poNumber,received){
   toast(`PO ${poNumber} marked ${received?'received':'open'}`);
 }
 
+async function deleteIncomingPO(poNumber){
+  if(!confirm(`Remove PO ${poNumber} from Dashb? This deletes its incoming records (does not affect Exact). Re-import to restore.`))return;
+  await sb.from('incoming_po').delete().eq('po_number',poNumber);
+  incomingRows=incomingRows.filter(r=>r.po_number!==poNumber);
+  rebuildIncomingIndex();renderIncomingTab();
+  if(document.getElementById('tab-china').classList.contains('active'))renderChinaTable();
+  toast(`PO ${poNumber} removed`);
+}
+
 function renderIncomingTab(){
   const filter=document.getElementById('incFilter')?.value||'open';
   const search=(document.getElementById('incSearch')?.value||'').toLowerCase();
@@ -1286,6 +1295,7 @@ function renderIncomingTab(){
         <div style="font-size:11px;color:var(--text2)">${totalQty.toLocaleString()} units</div>
         <div style="margin-left:auto;display:flex;gap:6px">
           ${anyOpen?`<button class="btn btn-primary" style="padding:3px 10px;font-size:12px" onclick="markPOReceived('${esc(p.po_number)}',true)">✓ Mark PO received</button>`:`<button class="btn" style="padding:3px 10px;font-size:12px;color:var(--text3)" onclick="markPOReceived('${esc(p.po_number)}',false)">Reopen PO</button>`}
+          <button class="btn" style="padding:3px 8px;font-size:12px;color:var(--red);border-color:var(--border)" onclick="deleteIncomingPO('${esc(p.po_number)}')" title="Remove this PO from Dashb (re-import to restore)">🗑</button>
         </div>
       </div>
       <div class="table-wrap"><table><thead><tr><th>Code</th><th>Description</th><th style="text-align:right">Qty</th><th style="text-align:center;width:120px">Delivery</th></tr></thead><tbody>${lineRows}</tbody></table></div>
