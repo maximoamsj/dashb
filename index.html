@@ -275,7 +275,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="cards" id="chinaCards"></div>
           <div class="china-layout" style="grid-template-columns:1fr">
             <div class="left">
-              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div><div class="filter-group"><label>Coverage</label><select id="chinaCoverage" onchange="setChinaCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div></div>
+              <div class="filters"><div class="filter-group"><label>Search</label><input type="text" id="chinaSearch" placeholder="Code or description..." oninput="renderChinaTable()" style="width:200px"></div><div class="filter-group"><label>Supplier</label><select id="chinaSupplier" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Group</label><select id="chinaGroup" onchange="renderChinaTable()"><option value="">All</option></select></div><div class="filter-group"><label>Show</label><select id="chinaFilter" onchange="renderChinaTable()"><option value="active">Active only</option><option value="all">All China</option><option value="late">Order overdue</option><option value="soon">Order within 30d</option></select></div><div class="filter-group"><label>Coverage</label><select id="chinaCoverage" onchange="setChinaCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div><div class="filter-group"><label>Plan for arrival</label><div style="display:flex;gap:4px;align-items:center"><input type="date" id="chinaPlanDateInput" onchange="setChinaPlanDate(this.value)" style="width:130px"><button class="btn" onclick="clearChinaPlanDate()" style="padding:4px 8px;font-size:11px" title="Back to planning from today">Today</button></div></div></div>
               <div class="table-wrap"><div class="table-scroll" style="max-height:calc(100vh - 260px)"><table><thead><tr>
                 <th onclick="doCSort('code')">Code</th><th onclick="doCSort('description')">Description</th><th onclick="doCSort('supplier')">Supplier</th><th onclick="doCSort('group')">Group</th><th onclick="doCSort('stock')">Stock</th><th onclick="doCSort('incoming')" style="color:var(--cyan)">Incoming</th><th onclick="doCSort('avg')">Avg/mo</th><th onclick="doCSort('suggested')" style="color:var(--purple)">Suggested</th><th onclick="doCSort('cost')">Cost</th><th onclick="doCSort('ordervalue')">Order €</th><th onclick="doCSort('stockout')">Stockout</th><th onclick="doCSort('orderby')">Order By</th><th>12mo projection</th><th style="width:30px"></th>
               </tr></thead><tbody id="chinaBody"></tbody></table></div></div>
@@ -573,6 +573,7 @@ let savedBoats={}; // id -> {id,name,arrival_date,notes,orders:{po_id:{id,name,s
 let currentBoatId=null, currentPOId=null;
 let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
 let chinaCoverage=6; // months to cover for suggested order qty
+let chinaPlanDate=null; // null = plan from today; Date = plan from future arrival
 let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
 let settings={applyVerschil:true,hideCscart:false};
 let suppliersData={};   // code -> {code,name,city,country,lead_time_override}
@@ -1510,21 +1511,49 @@ function getChinaAvg(code){
 
 function getSuggestedQty(info){
   if(!info||info.avg<=0)return{qty:null,label:'no data',breakdown:''};
-  // Seasonal demand over coverage window starting next month
-  const now=new Date();let demand=0;const parts=[];
-  for(let i=1;i<=chinaCoverage;i++){
-    const d=addMonths(now,i),f=getSeasonFactor(info.group,d.getMonth());
-    const md=info.avg*f;demand+=md;
-    if(i<=3)parts.push(`${fmtDate(d).slice(0,3)}×${f.toFixed(1)}`);
+  const now=new Date();
+  const planning=chinaPlanDate&&chinaPlanDate>now;
+
+  if(!planning){
+    // CURRENT MODE: demand from next month, minus today's stock, minus all inbound
+    let demand=0;const parts=[];
+    for(let i=1;i<=chinaCoverage;i++){
+      const d=addMonths(now,i),f=getSeasonFactor(info.group,d.getMonth());
+      demand+=info.avg*f;
+      if(i<=3)parts.push(`${fmtDate(d).slice(0,3)}×${f.toFixed(1)}`);
+    }
+    demand=Math.round(demand);
+    const stock=Math.max(info.currentStock,0);
+    const incoming=info.incoming||0;
+    const qty=Math.max(0,Math.ceil(demand-stock-incoming));
+    if(qty===0)return{qty:0,label:'covered',breakdown:`need ${demand}, have ${stock}${incoming?'+'+incoming+' inbound':''}`};
+    const seasNote=useAutoSeasonality&&derivedSeasonality[info.group]?` (${parts.join('+')}…)`:'';
+    return{qty,label:'',breakdown:`${demand} demand − ${info.currentStock} stock${incoming?' − '+incoming+' inbound':''}${seasNote}`};
   }
+
+  // PLAN MODE: how much to order for a boat arriving at chinaPlanDate?
+  const T=chinaPlanDate;
+  const mi=(T.getFullYear()-now.getFullYear())*12+(T.getMonth()-now.getMonth());
+  const proj=info.projection||[];
+  // Stock remaining when the boat lands. The projection already consumed
+  // seasonal demand month by month and added incoming POs arriving before T.
+  let stockAtArrival;
+  if(mi<=0)stockAtArrival=Math.max(info.currentStock,0);
+  else{const idx=Math.min(mi-1,proj.length-1);stockAtArrival=Math.max(proj[idx]?proj[idx].stock:0,0)}
+  // Inbound POs landing AFTER the plan date still help cover the window
+  const incAfter=Math.round(getIncomingForCode(info.code).filter(d=>d.date>T).reduce((s,d)=>s+d.qty,0));
+  // Demand from T through T+coverage-1, starting with the arrival month itself
+  let demand=0;
+  for(let j=0;j<chinaCoverage;j++){const d=addMonths(T,j);demand+=info.avg*getSeasonFactor(info.group,d.getMonth())}
   demand=Math.round(demand);
-  const stock=Math.max(info.currentStock,0);
-  const incoming=info.incoming||0;
-  const qty=Math.max(0,Math.ceil(demand-stock-incoming));
-  if(qty===0)return{qty:0,label:'covered',breakdown:`need ${demand}, have ${stock}${incoming?'+'+incoming+' inbound':''}`};
-  const seasNote=useAutoSeasonality&&derivedSeasonality[info.group]?` (${parts.join('+')}…)`:'';
-  return{qty,label:'',breakdown:`${demand} demand − ${info.currentStock} stock${incoming?' − '+incoming+' inbound':''}${seasNote}`};
+  const qty=Math.max(0,Math.ceil(demand-stockAtArrival-incAfter));
+  const Tlabel=fmtDate(T);
+  if(qty===0)return{qty:0,label:'covered',breakdown:`at ${Tlabel}: ${stockAtArrival} left ≥ ${demand} need`};
+  return{qty,label:'',breakdown:`${demand} need from ${Tlabel} − ${stockAtArrival} left at arrival${incAfter?' − '+incAfter+' inbound after':''}`};
 }
+
+function setChinaPlanDate(v){chinaPlanDate=v?new Date(v+'T00:00:00'):null;renderChinaTable()}
+function clearChinaPlanDate(){chinaPlanDate=null;const el=document.getElementById('chinaPlanDateInput');if(el)el.value='';renderChinaTable()}
 
 function setChinaCoverage(v){chinaCoverage=parseInt(v)||6;renderChinaTable()}
 
@@ -1547,6 +1576,9 @@ function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.lengt
 
 function renderChinaTable(){
   const codes=Object.keys(chinaProducts),search=(document.getElementById('chinaSearch').value||'').toLowerCase(),filter=document.getElementById('chinaFilter').value,supplierF=document.getElementById('chinaSupplier').value,groupF=document.getElementById('chinaGroup').value,now=new Date();
+  // Suggested header shows plan mode
+  const thS=document.querySelector('#tab-china th[onclick*="suggested"]');
+  if(thS)thS.innerHTML=(chinaPlanDate&&chinaPlanDate>now)?`Suggested<br><span style="font-size:9px;font-weight:400">from ${fmtDate(chinaPlanDate)}</span>`:'Suggested';
   let items=codes.map(c=>getStockoutInfo(c)).filter(Boolean);
 
   // Populate filter dropdowns based on current China products
@@ -1666,20 +1698,28 @@ async function deletePO(id){
 }
 async function deleteCurrentPO(){if(currentPOId)await deletePO(currentPOId)}
 
-// Auto-fill the current PO from China suggestions for its supplier
+// Auto-fill the current PO from China suggestions for its supplier.
+// Quantities are planned from the BOAT's arrival date (if set and in the future),
+// i.e. "how much do I need for <coverage> months counting from when this boat lands".
 async function autofillPO(){
   const b=savedBoats[currentBoatId];if(!b)return;
   const po=b.orders[currentPOId];if(!po)return;
   if(!po.supplier){toast('Set a supplier first','error');return}
   if(!suppliersData[po.supplier]){toast('Pick a supplier from the list (needed for matching)','error');return}
+  // Temporarily plan from the boat's arrival date
+  const savedPlan=chinaPlanDate;
+  if(b.arrival_date){const ad=new Date(b.arrival_date+'T00:00:00');if(!isNaN(ad.getTime())&&ad>new Date())chinaPlanDate=ad}
   let added=0;
-  for(const code of Object.keys(chinaProducts)){
-    const cost=getCost(code);if(!cost||cost.supplier_code!==po.supplier)continue;
-    const info=getStockoutInfo(code);if(!info)continue;
-    const sug=getSuggestedQty(info);if(!sug.qty||sug.qty<=0)continue;
-    if(!po.items[code]){po.items[code]={qty:sug.qty,price:cost.price||0};await sb.from('china_order_items').upsert({order_id:currentPOId,code,quantity:sug.qty,unit_price:cost.price||0});added++}
-  }
-  toast(added?`Added ${added} suggested items`:'No suggestions for this supplier');renderBoatDetail();
+  try{
+    for(const code of Object.keys(chinaProducts)){
+      const cost=getCost(code);if(!cost||cost.supplier_code!==po.supplier)continue;
+      const info=getStockoutInfo(code);if(!info)continue;
+      const sug=getSuggestedQty(info);if(!sug.qty||sug.qty<=0)continue;
+      if(!po.items[code]){po.items[code]={qty:sug.qty,price:cost.price||0};await sb.from('china_order_items').upsert({order_id:currentPOId,code,quantity:sug.qty,unit_price:cost.price||0});added++}
+    }
+  }finally{chinaPlanDate=savedPlan}
+  const planNote=b.arrival_date?` (planned from ${fmtDate(new Date(b.arrival_date+'T00:00:00'))})`:'';
+  toast(added?`Added ${added} suggested items${planNote}`:'No suggestions for this supplier');renderBoatDetail();
 }
 
 // Export the current PO as an Exact-ready CSV (one supplier = one PO)
