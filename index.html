@@ -289,6 +289,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="topbar">
         <h2>Orders</h2>
         <button class="btn btn-primary" onclick="newBoat()">+ New Boat</button>
+        <button class="btn" onclick="exportBoatReport()" id="btnExportReport" style="display:none">📄 Export Review (HTML)</button>
         <button class="btn" onclick="exportBoatCSV()" id="btnExportBoat" style="display:none">Export CSV</button>
       </div>
       <div class="content">
@@ -1617,7 +1618,7 @@ function doCSort(c){if(cSortCol===c)cSortAsc=!cSortAsc;else{cSortCol=c;cSortAsc=
 // ═══════════════════════════════════════════════
 // ORDER SIMULATOR
 // ═══════════════════════════════════════════════
-const CURR_SYM={USD:'$',EUR:'€',CNY:'¥'};
+const CURR_SYM={USD:'$',EUR:'€',CNY:'¥',GBP:'£'};
 
 function renderSimulator(){
   const boats=Object.values(savedBoats);
@@ -1634,10 +1635,12 @@ function renderSimulator(){
   if(currentBoatId&&savedBoats[currentBoatId]){
     document.getElementById('boatDetail').style.display='block';
     document.getElementById('btnExportBoat').style.display='inline-flex';
+    document.getElementById('btnExportReport').style.display='inline-flex';
     renderBoatDetail();
   }else{
     document.getElementById('boatDetail').style.display='none';
     document.getElementById('btnExportBoat').style.display='none';
+    document.getElementById('btnExportReport').style.display='none';
   }
 }
 
@@ -1997,6 +2000,186 @@ function getStockoutInfoForOrder(code,orderQty,arrDate){
   const incTotal=Math.round(incDels.reduce((s,d)=>s+d.qty,0));
   return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo,otherDels,incoming:incTotal,incDels};
 }
+
+function exportBoatReport(){
+  const b=savedBoats[currentBoatId];if(!b){toast('No boat selected','error');return}
+  const pos=Object.values(b.orders).filter(po=>Object.keys(po.items).length);
+  if(!pos.length){toast('This boat has no items to report','error');return}
+  const arrDate=b.arrival_date?new Date(b.arrival_date+'T00:00:00'):null;
+  const arrValid=arrDate&&!isNaN(arrDate.getTime());
+
+  // ── Gather per-product data ──
+  const products=[];let boatTotalEUR=0,boatUnits=0;
+  pos.forEach(po=>{
+    const rate=po.exchange_rate||1;
+    Object.keys(po.items).forEach(code=>{
+      const it=po.items[code];if(!it.qty)return;
+      const info=getStockoutInfoForOrder(code,it.qty,arrValid?arrDate:null);
+      const line=it.qty*it.price,eur=line*rate;
+      boatTotalEUR+=eur;boatUnits+=it.qty;
+      products.push({code,po,qty:it.qty,price:it.price,line,eur,info,desc:(masterItems[code]||{}).description||''});
+    });
+  });
+  const rescued=products.filter(p=>p.info&&p.info.improvement>0).length;
+  const stillShort=products.filter(p=>p.info&&p.info.projAfter.some(m=>m.stock<0)).length;
+
+  // ── Square grid helpers (diverging scale: red=stockout, amber=thin, green=healthy) ──
+  const sq=(m,avg)=>{
+    const s=m.stock;let bg,title=`${m.label}: ${s}`;
+    if(s<0){const d=Math.min(Math.abs(s)/Math.max(avg*2,1),1);bg=`rgba(239,68,68,${0.35+d*0.65})`}
+    else if(s<avg){bg='rgba(245,158,11,.75)'}
+    else{const d=Math.min(s/Math.max(avg*4,1),1);bg=`rgba(34,197,94,${0.3+d*0.6})`}
+    const rec=m.receive>0?'<span class="rec"></span>':'';
+    return `<div class="sq" style="background:${bg}" title="${title}${m.receive>0?' (+'+m.receive+' arrives)':''}">${rec}</div>`;
+  };
+  const grid=(proj,avg)=>proj.map(m=>sq(m,avg)).join('');
+  const monthLabels=products.length&&products[0].info?products[0].info.projBefore.map(m=>{
+    const t=m.label.split(' ');return `<div class="mo"><span>${t[0]}</span><span class="yr">${(t[1]||'').slice(2)}</span></div>`;
+  }).join(''):'';
+
+  // ── Per-PO blocks ──
+  const poBlocks=pos.map(po=>{
+    const sym=CURR_SYM[po.currency]||'';const rate=po.exchange_rate||1;
+    const items=products.filter(p=>p.po.id===po.id);
+    if(!items.length)return'';
+    const subNative=items.reduce((s,p)=>s+p.line,0),subEUR=items.reduce((s,p)=>s+p.eur,0);
+    const sup=suppliersData[po.supplier];
+    const rows=items.map(p=>`<tr>
+      <td class="mono">${p.code}</td><td>${escHtml(p.desc)}</td>
+      <td class="num">${p.qty.toLocaleString()}</td>
+      <td class="num">${sym}${p.price.toFixed(2)}</td>
+      <td class="num">${sym}${p.line.toFixed(2)}</td>
+      <td class="num eur">€${p.eur.toFixed(2)}</td></tr>`).join('');
+    return `<section class="po">
+      <div class="po-head">
+        <h3>${escHtml(po.name||'PO')}</h3>
+        <div class="po-meta">${sup?escHtml(sup.name):escHtml(po.supplier||'no supplier')} · ${po.currency} @ ${rate} → EUR · ${items.length} product${items.length!==1?'s':''}</div>
+        <div class="po-tot">${sym}${subNative.toFixed(2)} <span class="eur">(€${subEUR.toFixed(2)})</span></div>
+      </div>
+      <table class="lines"><thead><tr><th>Code</th><th>Description</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Line</th><th class="num">EUR</th></tr></thead><tbody>${rows}</tbody></table>
+    </section>`;
+  }).join('');
+
+  // ── Summary table ──
+  const sumRows=products.slice().sort((a,b)=>b.eur-a.eur).map(p=>{
+    const i=p.info;
+    const beforeNeg=i?i.projBefore.filter(m=>m.stock<0).length:0;
+    const afterNeg=i?i.projAfter.filter(m=>m.stock<0).length:0;
+    const badge=!i?'':afterNeg===0&&beforeNeg>0?'<span class="b ok">fixed</span>':afterNeg>0?`<span class="b warn">${afterNeg} mo short</span>`:'<span class="b neutral">ok</span>';
+    return `<tr>
+      <td class="mono">${p.code}</td><td>${escHtml(p.desc)}</td>
+      <td>${escHtml((suppliersData[p.po.supplier]||{}).name||p.po.supplier||'')}</td>
+      <td class="num">${p.qty.toLocaleString()}</td>
+      <td class="num eur">€${p.eur.toFixed(2)}</td>
+      <td class="num">${i?i.curStock:'—'}</td>
+      <td class="num">${i?i.avg:'—'}</td>
+      <td>${badge}</td></tr>`;
+  }).join('');
+
+  // ── Projection cards ──
+  const projCards=products.map(p=>{
+    const i=p.info;if(!i)return'';
+    const sup=(suppliersData[p.po.supplier]||{}).name||p.po.supplier||'';
+    return `<div class="pcard">
+      <div class="pc-head">
+        <div><span class="mono strong">${p.code}</span> — ${escHtml(p.desc)}</div>
+        <div class="pc-sub">${escHtml(sup)} · avg ${i.avg}/mo · stock ${i.curStock}${i.incoming>0?` · <span class="cy">incoming +${i.incoming}</span>`:''} · <span class="pu">this boat +${p.qty.toLocaleString()}</span></div>
+      </div>
+      <div class="months">${monthLabels}</div>
+      <div class="rowlabel">without this boat</div>
+      <div class="grid">${grid(i.projBefore,i.avg)}</div>
+      <div class="rowlabel">with this boat</div>
+      <div class="grid">${grid(i.projAfter,i.avg)}</div>
+    </div>`;
+  }).join('');
+
+  const gen=new Date();
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<title>${escHtml(b.name||'Boat')} — Purchase Review</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:32px;background:#0d1117;color:#c9d1d9;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:24px;color:#fff;margin:0 0 4px}
+h2{font-size:16px;color:#fff;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid #21262d}
+h3{font-size:15px;color:#fff;margin:0}
+.sub{color:#8b949e;font-size:13px;margin-bottom:22px}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.kpi{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 18px;min-width:130px}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8b949e}
+.kpi .v{font-size:20px;color:#fff;font-weight:600;margin-top:3px}
+.kpi .v.eur{color:#a78bfa}.kpi .v.ok{color:#22c55e}.kpi .v.warn{color:#f59e0b}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:7px 9px;background:#161b22;color:#8b949e;font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;border-bottom:1px solid #21262d}
+td{padding:7px 9px;border-bottom:1px solid #1b2029}
+tbody tr:hover{background:#161b22}
+.num{text-align:right}.eur{color:#a78bfa}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.strong{color:#fff;font-weight:600}
+.b{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.b.ok{background:rgba(34,197,94,.15);color:#22c55e}
+.b.warn{background:rgba(245,158,11,.15);color:#f59e0b}
+.b.neutral{background:#21262d;color:#8b949e}
+.po{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.po-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.po-meta{color:#8b949e;font-size:12px;flex:1}
+.po-tot{font-size:15px;color:#fff;font-weight:600}
+.lines th{background:transparent}
+.pcard{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.pc-head{margin-bottom:9px}
+.pc-sub{color:#8b949e;font-size:11.5px;margin-top:2px}
+.cy{color:#06b6d4}.pu{color:#a78bfa}
+.months{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-bottom:3px}
+.mo{font-size:8.5px;color:#6e7681;text-align:center;line-height:1.15;display:flex;flex-direction:column}
+.mo .yr{color:#484f58}
+.grid{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-bottom:7px}
+.sq{aspect-ratio:1;border-radius:3px;position:relative;min-height:20px}
+.rec{position:absolute;inset:0;border:2px solid #a78bfa;border-radius:3px}
+.rowlabel{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#6e7681;margin-bottom:3px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#8b949e;margin:10px 0 18px;align-items:center}
+.legend .s{width:13px;height:13px;border-radius:3px;display:inline-block;vertical-align:-2px;margin-right:5px}
+footer{margin-top:34px;padding-top:14px;border-top:1px solid #21262d;color:#6e7681;font-size:11px}
+@media print{body{background:#fff;color:#000}.po,.pcard,.kpi{break-inside:avoid}}
+</style></head><body><div class="wrap">
+
+<h1>${escHtml(b.name||'Boat')} — Purchase Review</h1>
+<div class="sub">Arrival ${arrValid?arrDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'not set'} · ${pos.length} purchase order${pos.length!==1?'s':''} · generated ${gen.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">Total value</div><div class="v eur">€${boatTotalEUR.toLocaleString(undefined,{maximumFractionDigits:0})}</div></div>
+  <div class="kpi"><div class="l">Products</div><div class="v">${products.length}</div></div>
+  <div class="kpi"><div class="l">Units</div><div class="v">${boatUnits.toLocaleString()}</div></div>
+  <div class="kpi"><div class="l">Stockouts fixed</div><div class="v ok">${rescued}</div></div>
+  <div class="kpi"><div class="l">Still short</div><div class="v ${stillShort?'warn':'ok'}">${stillShort}</div></div>
+</div>
+
+<h2>Summary — all products</h2>
+<table><thead><tr><th>Code</th><th>Description</th><th>Supplier</th><th class="num">Qty</th><th class="num">Value EUR</th><th class="num">Stock</th><th class="num">Avg/mo</th><th>Outcome</th></tr></thead><tbody>${sumRows}</tbody></table>
+
+<h2>Purchase orders</h2>
+${poBlocks}
+
+<h2>15-month stock projection</h2>
+<div class="legend">
+  <span><span class="s" style="background:rgba(239,68,68,.8)"></span>negative (stockout)</span>
+  <span><span class="s" style="background:rgba(245,158,11,.75)"></span>below one month of sales</span>
+  <span><span class="s" style="background:rgba(34,197,94,.7)"></span>healthy</span>
+  <span><span class="s" style="border:2px solid #a78bfa;background:transparent"></span>stock arrives this month</span>
+</div>
+${projCards}
+
+<footer>Generated by Dashb · figures in EUR use each PO's stated exchange rate · projections include incoming POs not yet received${includeOtherBoats?' and other planned boats':''}</footer>
+</div></body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=(b.name||'boat').replace(/[^a-z0-9]/gi,'_')+'_review.html';
+  a.click();URL.revokeObjectURL(url);
+  toast('Report exported');
+}
+
+function escHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 function exportBoatCSV(){
   const b=savedBoats[currentBoatId];if(!b)return;
