@@ -310,8 +310,8 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
             <!-- Other-boats toggle -->
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text2)">
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-                <input type="checkbox" id="toggleOtherBoats" onchange="toggleIncludeOtherBoats(this.checked)" checked>
-                Include other boats' arrivals in projection
+                <input type="checkbox" id="toggleOtherBoats" onchange="toggleIncludeOtherBoats(this.checked)">
+                Also include other simulator boats (speculative, not yet in Exact)
               </label>
               <span id="otherBoatsHint" style="font-size:11px;color:var(--text3)"></span>
             </div>
@@ -574,7 +574,7 @@ let currentBoatId=null, currentPOId=null;
 let lastUpdated={master:null,cscart:null,exact:null,verschil:null};
 let chinaCoverage=6; // months to cover for suggested order qty
 let chinaPlanDate=null; // null = plan from today; Date = plan from future arrival
-let includeOtherBoats=true; // include other boats' arrivals in Order Simulator projections
+let includeOtherBoats=false; // OFF by default: projections use incoming POs + current boat only
 let settings={applyVerschil:true,hideCscart:false};
 let suppliersData={};   // code -> {code,name,city,country,lead_time_override}
 let productCost={};      // code -> {price,currency,supplier_code}
@@ -1773,8 +1773,10 @@ function renderBoatDetail(){
   const otherFuture=Object.values(savedBoats).filter(x=>x.id!==currentBoatId&&x.arrival_date&&new Date(x.arrival_date)>=now);
   const hint=document.getElementById('otherBoatsHint');
   if(hint){
-    if(otherFuture.length===0)hint.textContent='(no other future boats)';
-    else hint.innerHTML='('+otherFuture.map(x=>`${esc(x.name)} → ${fmtDateShort(new Date(x.arrival_date))}`).join(', ')+')';
+    const incCount=Object.values(incomingPO).flat().filter(x=>!x.received).length;
+    const incNote=incCount?`<span style="color:var(--cyan)">Incoming POs always counted</span> · `:'';
+    if(otherFuture.length===0)hint.innerHTML=incNote+'no other simulator boats';
+    else hint.innerHTML=incNote+'other boats: '+otherFuture.map(x=>`${esc(x.name)} → ${fmtDateShort(new Date(x.arrival_date))}`).join(', ');
   }
 
   // PO tabs
@@ -1946,10 +1948,10 @@ function renderBoatProjections(){
       <div class="sim-proj-header">
         <div>
           <div class="sim-proj-title">${code} — ${esc(info.description)}</div>
-          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months${info.otherDels&&info.otherDels.length?' · <span style="color:var(--cyan)">also: '+info.otherDels.map(d=>'+'+d.qty+' from '+esc(d.boatName)+' '+fmtDateShort(d.date)).join(', ')+'</span>':''}</div>
+          <div class="sim-proj-sub">${esc(info.supplier)} · Avg ${info.avg}/mo (${info.activeMo}/${info.totalMo}) · Stock: ${info.curStock} · Order: +${totalQty} · Improves ${info.improvement} months${info.incoming>0?' · <span style="color:var(--cyan)">incoming PO: +'+info.incoming+'</span>':''}${info.otherDels&&info.otherDels.length?' · <span style="color:var(--cyan)">also: '+info.otherDels.map(d=>'+'+d.qty+' from '+esc(d.boatName)+' '+fmtDateShort(d.date)).join(', ')+'</span>':''}</div>
         </div>
       </div>
-      <div class="sim-rows-label">${includeOtherBoats&&info.otherDels&&info.otherDels.length?'WITHOUT THIS BOAT (other boats included)':'WITHOUT ORDER'}</div>
+      <div class="sim-rows-label">${(includeOtherBoats&&info.otherDels&&info.otherDels.length)?'WITHOUT THIS BOAT (incoming POs + other boats)':(info.incoming>0?'WITHOUT THIS BOAT (incoming POs included)':'WITHOUT ORDER')}</div>
       <div class="sim-grid">${headerRow}</div>
       <div class="sim-grid">${beforeRow}</div>
       <div class="sim-rows-label" style="color:var(--purple)">WITH THIS BOAT (+${totalQty} arriving ${arrDate?fmtDateShort(arrDate):'—'})</div>
@@ -1984,12 +1986,16 @@ function getStockoutInfoForOrder(code,orderQty,arrDate){
   const chinaAvg=getChinaAvg(code);
   const avg=chinaAvg.avg,group=cp.group||m.group||'';
   const otherDels=getOtherBoatDeliveries(code,currentBoatId);
-  const projBefore=projectStockMulti(code,curStock,avg,group,otherDels);
+  // Uploaded incoming POs (Exact orders placed, not yet received) always count
+  const incDels=getIncomingForCode(code);
+  const baseDels=[...otherDels,...incDels];
+  const projBefore=projectStockMulti(code,curStock,avg,group,baseDels);
   const ownDel=orderQty>0&&arrDate?[{date:arrDate,qty:orderQty}]:[];
-  const projAfter=projectStockMulti(code,curStock,avg,group,[...otherDels,...ownDel]);
+  const projAfter=projectStockMulti(code,curStock,avg,group,[...baseDels,...ownDel]);
   let improvement=0;
   for(let i=0;i<projBefore.length;i++){if(projBefore[i].stock<0&&projAfter[i].stock>=0)improvement++}
-  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo,otherDels};
+  const incTotal=Math.round(incDels.reduce((s,d)=>s+d.qty,0));
+  return{code,description:m.description||'',supplier:m.supplier||'',curStock,avg,group,projBefore,projAfter,improvement,activeMo:chinaAvg.activeMo,totalMo:chinaAvg.totalMo,otherDels,incoming:incTotal,incDels};
 }
 
 function exportBoatCSV(){
