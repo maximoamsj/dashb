@@ -148,6 +148,21 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 .lock-box .lock-btn{width:100%;padding:10px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .lock-box .lock-btn:hover{background:#2563eb}
 .lock-error{color:var(--red);font-size:12px;margin-bottom:10px;display:none}
+/* Instant Pot — GitHub-style contribution squares */
+.ip-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--text3);margin:4px 0 12px}
+.ipl{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:4px}
+.ip-row{display:grid;grid-template-columns:minmax(240px,1fr) auto auto auto auto;gap:14px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px}
+.ip-row:hover{background:var(--bg2)}
+.ip-head{position:sticky;top:0;background:var(--bg);z-index:2;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)}
+.ip-name{overflow:hidden}
+.ip-name .c{font-family:var(--mono);color:var(--text)}
+.ip-name .d{color:var(--text2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ip-num{text-align:right;font-family:var(--mono);min-width:56px}
+.ip-grid{display:grid;grid-template-columns:repeat(15,10px);gap:2px}
+.ip-sq{width:10px;height:10px;border-radius:2px;position:relative}
+.ip-sq.rec{outline:1.5px solid #a78bfa;outline-offset:-1px}
+.ip-sq.win{box-shadow:inset 0 0 0 1px rgba(167,139,250,.3)}
+.ip-months{display:grid;grid-template-columns:repeat(15,10px);gap:2px;font-size:7px;color:var(--text3);text-align:center;line-height:1}
 /* AI Chat Panel */
 .ai-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:var(--purple);border:none;color:#fff;font-size:20px;cursor:pointer;z-index:900;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;transition:transform .15s}
 .ai-fab:hover{transform:scale(1.1)}
@@ -194,6 +209,7 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
       <div class="nav-item" data-tab="sales" onclick="switchTab('sales')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Monthly Sales</div>
       <div class="nav-item" data-tab="suppliers" onclick="switchTab('suppliers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Suppliers</div>
       <div class="nav-item" data-tab="china" onclick="switchTab('china')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>China Orders<span class="badge" id="chinaBadge" style="display:none">0</span></div>
+      <div class="nav-item" data-tab="instantpot" onclick="switchTab('instantpot')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16v9a3 3 0 01-3 3H7a3 3 0 01-3-3V8z"/><path d="M3 8h18"/><path d="M9 5V3h6v2"/><path d="M12 12v4"/></svg>Instant Pot</div>
       <div class="nav-item" data-tab="incoming" onclick="switchTab('incoming')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16h6M19 13v6"/><path d="M21 10V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l2-1.14"/><path d="M3.27 6.96L12 12l8.73-5.04"/></svg>Incoming POs</div>
       <div class="nav-item" data-tab="simulator" onclick="switchTab('simulator')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h6"/><path d="M15 9h6"/><path d="M3 15h6"/><path d="M15 15h6"/></svg>Orders</div>
       <div class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
@@ -367,6 +383,33 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
         </div>
       </div>
     </div>
+    <!-- ════════════ INSTANT POT ════════════ -->
+    <div class="tab-content" id="tab-instantpot">
+      <div class="topbar"><h2>Instant Pot</h2><div id="ipSummary" style="font-size:12px;color:var(--text2);margin-left:auto"></div></div>
+      <div class="content">
+        <div id="ipEmpty" style="text-align:center;padding:60px 20px;color:var(--text3);display:none">
+          <p style="font-size:14px;margin-bottom:8px">No Instant Brands products found.</p>
+          <p style="font-size:12px">This tab lists every product whose supplier is Instant Brands. Make sure master data and stock are loaded.</p>
+        </div>
+        <div id="ipDash">
+          <div class="filters">
+            <div class="filter-group"><label>Search</label><input type="text" id="ipSearch" placeholder="Code or description..." oninput="renderIPTable()" style="width:200px"></div>
+            <div class="filter-group"><label>Group</label><select id="ipGroup" onchange="renderIPTable()"><option value="">All</option></select></div>
+            <div class="filter-group"><label>Show</label><select id="ipFilter" onchange="renderIPTable()"><option value="all">All</option><option value="risk">At risk (stockout in window)</option><option value="order">Needs order</option></select></div>
+            <div class="filter-group"><label>Coverage</label><select id="ipCoverage" onchange="setIPCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div>
+            <div class="filter-group"><label>Lead time (days)</label><input type="number" id="ipLeadTime" value="30" min="0" onchange="setIPLeadTime(this.value)" style="width:70px"></div>
+          </div>
+          <div class="ip-legend">
+            <span><span class="ipl" style="background:rgba(239,68,68,.8)"></span>stockout</span>
+            <span><span class="ipl" style="background:rgba(245,158,11,.75)"></span>under 1 month cover</span>
+            <span><span class="ipl" style="background:rgba(34,197,94,.7)"></span>healthy</span>
+            <span><span class="ipl" style="outline:1.5px solid #a78bfa;background:transparent"></span>stock arrives</span>
+          </div>
+          <div id="ipList"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ════════════ INCOMING POs ════════════ -->
     <div class="tab-content" id="tab-incoming">
       <div class="topbar"><h2>Incoming POs</h2><div id="incomingSummary" style="font-size:12px;color:var(--text2);margin-left:auto"></div></div>
@@ -760,7 +803,7 @@ function updateStatus(){
 // Refresh "X ago" labels every minute
 setInterval(()=>{if(document.getElementById('appMain').style.display!=='none')updateStatus()},60000);
 function setDot(id,on){const e=document.getElementById(id);e.classList.toggle('on',on);e.classList.toggle('off',!on)}
-function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings();if(t==='incoming')renderIncomingTab()}
+function switchTab(t){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.querySelector(`[data-tab="${t}"]`).classList.add('active');if(t==='suppliers')renderSuppliers();if(t==='sales')initSalesDash();if(t==='china')renderChinaTab();if(t==='instantpot')renderIPTab();if(t==='simulator')renderSimulator();if(t==='settings')renderSettings();if(t==='incoming')renderIncomingTab()}
 
 function renderSettings(){
   document.getElementById('settingApplyVerschil').checked=!!settings.applyVerschil;
@@ -879,6 +922,7 @@ async function loadExactStock(input){
       await sb.from('exact_stock').delete().neq('code','');
       await batchUpsert('exact_stock',rows);
       toast(`Exact: ${rows.length} items saved`);lastUpdated.exact=new Date().toISOString();updateStatus();rebuildMerged();
+      await saveWeeklySnapshot();
     }catch(err){toast('Error: '+err.message,'error')}finally{btn.classList.remove('loading');btn.textContent='Exact Stock (.xlsx)'}
   };r.readAsArrayBuffer(f);input.value='';
 }
@@ -1224,6 +1268,36 @@ function getIncomingForCode(code){
 }
 function getIncomingTotal(code){return(incomingPO[code]||[]).filter(x=>!x.received).reduce((s,x)=>s+x.qty,0)}
 function getCost(code){return productCost[code]||null}
+
+// ── Weekly stock history snapshot ──
+function isoWeekStart(d){
+  const r=new Date(d);
+  const day=(r.getDay()+6)%7; // Mon=0 … Sun=6
+  r.setDate(r.getDate()-day);
+  r.setHours(0,0,0,0);
+  return r;
+}
+async function saveWeeklySnapshot(){
+  const codes=Object.keys(exactStock);
+  if(!codes.length)return;
+  const wk=isoWeekStart(new Date()).toISOString().split('T')[0];
+  try{
+    // FIRST-WRITE-WINS: if this week already has a snapshot, leave it alone.
+    const{data,error}=await sb.from('stock_history').select('code').eq('week_start',wk).limit(1);
+    if(error)throw error;
+    if(data&&data.length){toast(`Week of ${wk} already recorded — history unchanged`);return}
+    const rows=codes.map(code=>{
+      const ex=exactStock[code];
+      const v=verschilData[code];
+      const cs=cscartData[code];
+      return{week_start:wk,code,exact_stock:ex,verschil:v!==undefined?v:null,real_stock:v!==undefined?ex-v:ex,cscart_stock:cs?cs.stock:null};
+    });
+    await batchUpsert('stock_history',rows);
+    toast(`Weekly snapshot saved (week of ${wk})`);
+  }catch(e){
+    console.warn('stock_history snapshot skipped:',e.message);
+  }
+}
 
 // ── Mark deliveries received ──
 async function markLineReceived(id,received){
@@ -1572,6 +1646,101 @@ function getStockoutInfo(code){
   const soDate=soIdx>=0?proj[soIdx].date:null,obDate=soDate?new Date(soDate.getTime()-lt*86400000):null;
   const cost=getCost(code);
   return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,incoming:incomingTotal,avg,activeMo,totalMo,leadTime:lt,projection:proj,stockoutDate:soDate,orderByDate:obDate,cost:cost?cost.price:null,costCurrency:cost?cost.currency:null,status:cs?cs.status:(exactStock[code]!==undefined?'E':'?')}}
+
+// ═══════════════════════════════════════════════
+// INSTANT POT
+// ═══════════════════════════════════════════════
+let ipCoverage=6, ipLeadTime=30;
+try{const c=localStorage.getItem('kn_ip_coverage');if(c)ipCoverage=parseInt(c)||6;const l=localStorage.getItem('kn_ip_leadtime');if(l)ipLeadTime=parseInt(l)||30}catch(e){}
+function setIPCoverage(v){ipCoverage=parseInt(v)||6;try{localStorage.setItem('kn_ip_coverage',ipCoverage)}catch(e){}renderIPTable()}
+function setIPLeadTime(v){ipLeadTime=Math.max(0,parseInt(v)||0);try{localStorage.setItem('kn_ip_leadtime',ipLeadTime)}catch(e){}renderIPTable()}
+
+function isInstantBrands(supplier){return /instant\s*brands/i.test(supplier||'')}
+function getIPCodes(){
+  return Object.keys(masterItems).filter(code=>isInstantBrands(masterItems[code].supplier));
+}
+function getIPInfo(code){
+  const m=masterItems[code]||{},cs=cscartData[code],ex=getCorrectedExact(code);
+  const curStock=ex!==undefined?ex:(cs?cs.stock:0);
+  const a=getChinaAvg(code); // same 12-month active-month average
+  const group=m.group||'';
+  const incoming=getIncomingForCode(code),incomingTotal=getIncomingTotal(code);
+  const proj=projectStockMulti(code,curStock,a.avg,group,incoming);
+  let soIdx=-1;for(let i=0;i<proj.length;i++){if(proj[i].stock<=0){soIdx=i;break}}
+  const soDate=soIdx>=0?proj[soIdx].date:null;
+  const obDate=soDate?new Date(soDate.getTime()-ipLeadTime*86400000):null;
+  const cost=getCost(code);
+  // suggested: seasonal demand over coverage window minus stock minus inbound
+  let demand=0;const now=new Date();
+  for(let i=1;i<=ipCoverage;i++){const d=addMonths(now,i);demand+=a.avg*getSeasonFactor(group,d.getMonth())}
+  demand=Math.round(demand);
+  const suggested=a.avg>0?Math.max(0,Math.ceil(demand-Math.max(curStock,0)-incomingTotal)):null;
+  return{code,description:m.description||'',supplier:m.supplier||'',group,currentStock:curStock,incoming:incomingTotal,
+    avg:a.avg,activeMo:a.activeMo,totalMo:a.totalMo,projection:proj,stockoutDate:soDate,orderByDate:obDate,
+    suggested,demand,cost:cost?cost.price:null,costCurrency:cost?cost.currency:null,
+    status:cs?cs.status:(exactStock[code]!==undefined?'E':'?')};
+}
+
+function renderIPTab(){
+  const codes=getIPCodes();
+  const has=codes.length>0;
+  document.getElementById('ipEmpty').style.display=has?'none':'block';
+  document.getElementById('ipDash').style.display=has?'block':'none';
+  if(!has)return;
+  // populate group filter
+  const groups=[...new Set(codes.map(c=>(masterItems[c]||{}).group).filter(Boolean))].sort();
+  const sel=document.getElementById('ipGroup'),cur=sel.value;
+  sel.innerHTML='<option value="">All ('+groups.length+')</option>'+groups.map(g=>`<option value="${esc(g)}" ${g===cur?'selected':''}>${esc(g)}</option>`).join('');
+  document.getElementById('ipLeadTime').value=ipLeadTime;
+  document.getElementById('ipCoverage').value=ipCoverage;
+  renderIPTable();
+}
+
+function renderIPTable(){
+  const codes=getIPCodes();
+  const search=(document.getElementById('ipSearch').value||'').toLowerCase();
+  const groupF=document.getElementById('ipGroup').value;
+  const filter=document.getElementById('ipFilter').value;
+  const now=new Date();
+  let items=codes.map(getIPInfo);
+  if(search)items=items.filter(r=>r.code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(groupF)items=items.filter(r=>r.group===groupF);
+  if(filter==='risk')items=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0));
+  if(filter==='order')items=items.filter(r=>r.suggested>0);
+  items.sort((a,b)=>{
+    const ad=a.stockoutDate?a.stockoutDate.getTime():9e15,bd=b.stockoutDate?b.stockoutDate.getTime():9e15;
+    return ad-bd;
+  });
+  // summary
+  const atRisk=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0)).length;
+  const needOrder=items.filter(r=>r.suggested>0).length;
+  document.getElementById('ipSummary').innerHTML=`${items.length} products · <span style="color:${atRisk?'var(--red)':'var(--green)'}">${atRisk} at risk</span> · ${needOrder} need order`;
+  // month header
+  const monthHdr=items.length?items[0].projection.map(m=>`<div>${m.label.slice(0,1)}</div>`).join(''):'';
+  const rows=items.map(r=>{
+    const sq=r.projection.map((m,i)=>{
+      const s=m.stock;let bg;
+      if(s<0){const d=Math.min(Math.abs(s)/Math.max(r.avg*2,1),1);bg=`rgba(239,68,68,${0.35+d*0.65})`}
+      else if(s<r.avg){bg='rgba(245,158,11,.75)'}
+      else{const d=Math.min(s/Math.max(r.avg*4,1),1);bg=`rgba(34,197,94,${0.3+d*0.6})`}
+      const cls='ip-sq'+(m.receive>0?' rec':'')+(i<ipCoverage?' win':'');
+      return`<div class="${cls}" style="background:${bg}" title="${m.label}: ${m.stock}${m.receive>0?' (+'+m.receive+' arrives)':''}"></div>`;
+    }).join('');
+    const soH=!r.avg?'<span style="color:var(--text3)">no data</span>':r.stockoutDate?`<span style="color:${r.stockoutDate<addMonths(now,2)?'var(--red)':'var(--text2)'}">${fmtDate(r.stockoutDate)}</span>`:'<span style="color:var(--green)">15+ mo</span>';
+    const obH=r.orderByDate?`<span style="color:${r.orderByDate<now?'var(--red)':'var(--text2)'}">${fmtDate(r.orderByDate)}${r.orderByDate<now?' ⚠':''}</span>`:'—';
+    const sugH=r.suggested===null?'<span style="color:var(--text3)">—</span>':r.suggested>0?`<span style="color:var(--purple);font-weight:600">${r.suggested.toLocaleString()}</span>`:'<span style="color:var(--text3)">covered</span>';
+    return`<div class="ip-row">
+      <div class="ip-name"><span class="c">${r.code}</span> <span class="d">${esc(r.description)}</span></div>
+      <div class="ip-num" title="Current stock">${r.currentStock}${r.incoming?`<br><span style="font-size:9px;color:var(--cyan)">+${r.incoming}</span>`:''}</div>
+      <div class="ip-num" title="Avg/mo (active months)">${r.avg||'—'}<br><span style="font-size:9px;color:var(--text3)">${r.activeMo}/${r.totalMo}</span></div>
+      <div class="ip-num" title="Suggested order for ${ipCoverage} months">${sugH}</div>
+      <div><div class="ip-months">${monthHdr}</div><div class="ip-grid">${sq}</div><div style="font-size:9px;color:var(--text3);margin-top:3px">out ${soH} · order by ${obH}</div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('ipList').innerHTML=
+    `<div class="ip-row ip-head"><div>Product</div><div class="ip-num">Stock</div><div class="ip-num">Avg/mo</div><div class="ip-num">Suggest</div><div>15-month projection</div></div>`+
+    (rows||'<div style="padding:30px;text-align:center;color:var(--text3)">No products match these filters.</div>');
+}
 
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
 
@@ -2020,19 +2189,23 @@ function exportBoatReport(){
       products.push({code,po,qty:it.qty,price:it.price,line,eur,info,desc:(masterItems[code]||{}).description||''});
     });
   });
-  const rescued=products.filter(p=>p.info&&p.info.improvement>0).length;
-  const stillShort=products.filter(p=>p.info&&p.info.projAfter.some(m=>m.stock<0)).length;
+  const _now=new Date();
+  let _ws=0;if(arrValid)_ws=Math.max(0,(arrDate.getFullYear()-_now.getFullYear())*12+(arrDate.getMonth()-_now.getMonth()));
+  const _inWin=(idx)=>idx>=_ws&&idx<_ws+chinaCoverage;
+  const rescued=products.filter(p=>p.info&&p.info.projBefore.some((m,idx)=>_inWin(idx)&&m.stock<0)&&!p.info.projAfter.some((m,idx)=>_inWin(idx)&&m.stock<0)).length;
+  const stillShort=products.filter(p=>p.info&&p.info.projAfter.some((m,idx)=>_inWin(idx)&&m.stock<0)).length;
 
   // ── Square grid helpers (diverging scale: red=stockout, amber=thin, green=healthy) ──
-  const sq=(m,avg)=>{
+  const sq=(m,avg,idx,ws)=>{
     const s=m.stock;let bg,title=`${m.label}: ${s}`;
     if(s<0){const d=Math.min(Math.abs(s)/Math.max(avg*2,1),1);bg=`rgba(239,68,68,${0.35+d*0.65})`}
     else if(s<avg){bg='rgba(245,158,11,.75)'}
     else{const d=Math.min(s/Math.max(avg*4,1),1);bg=`rgba(34,197,94,${0.3+d*0.6})`}
     const rec=m.receive>0?'<span class="rec"></span>':'';
-    return `<div class="sq" style="background:${bg}" title="${title}${m.receive>0?' (+'+m.receive+' arrives)':''}">${rec}</div>`;
+    const win=(idx>=ws&&idx<ws+chinaCoverage)?' win':'';
+    return `<div class="sq${win}" style="background:${bg}" title="${title}${m.receive>0?' (+'+m.receive+' arrives)':''}">${rec}</div>`;
   };
-  const grid=(proj,avg)=>proj.map(m=>sq(m,avg)).join('');
+  const grid=(proj,avg,ws)=>proj.map((m,idx)=>sq(m,avg,idx,ws)).join('');
   const monthLabels=products.length&&products[0].info?products[0].info.projBefore.map(m=>{
     const t=m.label.split(' ');return `<div class="mo"><span>${t[0]}</span><span class="yr">${(t[1]||'').slice(2)}</span></div>`;
   }).join(''):'';
@@ -2061,10 +2234,17 @@ function exportBoatReport(){
   }).join('');
 
   // ── Summary table ──
+  // Outcome window = from boat arrival month through arrival + coverage months.
+  // (We only judge whether the boat keeps stock healthy for the intended coverage
+  // period after it lands — not the entire 15-month horizon.)
+  const now0=new Date();
+  let winStart=0,winEnd=chinaCoverage;
+  if(arrValid){winStart=Math.max(0,(arrDate.getFullYear()-now0.getFullYear())*12+(arrDate.getMonth()-now0.getMonth()));winEnd=winStart+chinaCoverage}
+  const inWindow=(idx)=>idx>=winStart&&idx<winStart+chinaCoverage;
   const sumRows=products.slice().sort((a,b)=>b.eur-a.eur).map(p=>{
     const i=p.info;
-    const beforeNeg=i?i.projBefore.filter(m=>m.stock<0).length:0;
-    const afterNeg=i?i.projAfter.filter(m=>m.stock<0).length:0;
+    const beforeNeg=i?i.projBefore.filter((m,idx)=>inWindow(idx)&&m.stock<0).length:0;
+    const afterNeg=i?i.projAfter.filter((m,idx)=>inWindow(idx)&&m.stock<0).length:0;
     const badge=!i?'':afterNeg===0&&beforeNeg>0?'<span class="b ok">fixed</span>':afterNeg>0?`<span class="b warn">${afterNeg} mo short</span>`:'<span class="b neutral">ok</span>';
     return `<tr>
       <td class="mono">${p.code}</td><td>${escHtml(p.desc)}</td>
@@ -2087,9 +2267,9 @@ function exportBoatReport(){
       </div>
       <div class="months">${monthLabels}</div>
       <div class="rowlabel">without this boat</div>
-      <div class="grid">${grid(i.projBefore,i.avg)}</div>
+      <div class="grid">${grid(i.projBefore,i.avg,_ws)}</div>
       <div class="rowlabel">with this boat</div>
-      <div class="grid">${grid(i.projAfter,i.avg)}</div>
+      <div class="grid">${grid(i.projAfter,i.avg,_ws)}</div>
     </div>`;
   }).join('');
 
@@ -2129,13 +2309,14 @@ tbody tr:hover{background:#161b22}
 .pc-head{margin-bottom:9px}
 .pc-sub{color:#8b949e;font-size:11.5px;margin-top:2px}
 .cy{color:#06b6d4}.pu{color:#a78bfa}
-.months{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-bottom:3px}
-.mo{font-size:8.5px;color:#6e7681;text-align:center;line-height:1.15;display:flex;flex-direction:column}
+.months{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;margin-bottom:2px;max-width:560px}
+.mo{font-size:7.5px;color:#6e7681;text-align:center;line-height:1.1;display:flex;flex-direction:column}
 .mo .yr{color:#484f58}
-.grid{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-bottom:7px}
-.sq{aspect-ratio:1;border-radius:3px;position:relative;min-height:20px}
-.rec{position:absolute;inset:0;border:2px solid #a78bfa;border-radius:3px}
-.rowlabel{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#6e7681;margin-bottom:3px}
+.grid{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;margin-bottom:5px;max-width:560px}
+.sq{aspect-ratio:1;border-radius:2px;position:relative;min-height:0}
+.sq.win{outline:1px solid rgba(167,139,250,.35);outline-offset:-1px}
+.rec{position:absolute;inset:0;border:1.5px solid #a78bfa;border-radius:2px}
+.rowlabel{font-size:8.5px;text-transform:uppercase;letter-spacing:.5px;color:#6e7681;margin-bottom:2px}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#8b949e;margin:10px 0 18px;align-items:center}
 .legend .s{width:13px;height:13px;border-radius:3px;display:inline-block;vertical-align:-2px;margin-right:5px}
 footer{margin-top:34px;padding-top:14px;border-top:1px solid #21262d;color:#6e7681;font-size:11px}
@@ -2165,6 +2346,7 @@ ${poBlocks}
   <span><span class="s" style="background:rgba(245,158,11,.75)"></span>below one month of sales</span>
   <span><span class="s" style="background:rgba(34,197,94,.7)"></span>healthy</span>
   <span><span class="s" style="border:2px solid #a78bfa;background:transparent"></span>stock arrives this month</span>
+  <span><span class="s" style="outline:1px solid rgba(167,139,250,.5);background:transparent"></span>coverage window (${chinaCoverage} mo from arrival)</span>
 </div>
 ${projCards}
 
