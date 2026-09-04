@@ -151,9 +151,11 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
 /* Instant Pot — GitHub-style contribution squares */
 .ip-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--text3);margin:4px 0 12px}
 .ipl{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:4px}
-.ip-row{display:grid;grid-template-columns:minmax(240px,1fr) auto auto auto auto;gap:14px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px}
+.ip-row{display:grid;grid-template-columns:minmax(200px,1fr) 64px 64px 74px 200px;gap:14px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px}
 .ip-row:hover{background:var(--bg2)}
 .ip-head{position:sticky;top:0;background:var(--bg);z-index:2;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)}
+.ip-head .sortable{cursor:pointer;user-select:none}
+.ip-head .sortable:hover{color:var(--text)}
 .ip-name{overflow:hidden}
 .ip-name .c{font-family:var(--mono);color:var(--text)}
 .ip-name .d{color:var(--text2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -395,9 +397,14 @@ tr.urgent-critical{border-left:3px solid var(--red)}tr.urgent-warning{border-lef
           <div class="filters">
             <div class="filter-group"><label>Search</label><input type="text" id="ipSearch" placeholder="Code or description..." oninput="renderIPTable()" style="width:200px"></div>
             <div class="filter-group"><label>Group</label><select id="ipGroup" onchange="renderIPTable()"><option value="">All</option></select></div>
-            <div class="filter-group"><label>Show</label><select id="ipFilter" onchange="renderIPTable()"><option value="all">All</option><option value="risk">At risk (stockout in window)</option><option value="order">Needs order</option></select></div>
+            <div class="filter-group"><label>Show</label><select id="ipFilter" onchange="renderIPTable()"><option value="all">All</option><option value="risk">At risk — hits zero in window</option><option value="order">Needs order — suggested &gt; 0</option></select></div>
             <div class="filter-group"><label>Coverage</label><select id="ipCoverage" onchange="setIPCoverage(this.value)"><option value="4">4 mo</option><option value="6" selected>6 mo</option><option value="9">9 mo</option><option value="12">12 mo</option></select></div>
             <div class="filter-group"><label>Lead time (days)</label><input type="number" id="ipLeadTime" value="30" min="0" onchange="setIPLeadTime(this.value)" style="width:70px"></div>
+            <div class="filter-group"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);white-space:nowrap"><input type="checkbox" id="ipHideNoSales" onchange="renderIPTable()"> Hide products with no sales</label></div>
+            <div class="filter-group" style="margin-left:auto;display:flex;align-items:flex-end;gap:8px">
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);white-space:nowrap" title="Leave suggested order quantities out of the exported file"><input type="checkbox" id="ipExportNoSuggest" checked> Export without suggestions</label>
+              <button class="btn" onclick="exportIPReport()">📄 Export view (HTML)</button>
+            </div>
           </div>
           <div class="ip-legend">
             <span><span class="ipl" style="background:rgba(239,68,68,.8)"></span>stockout</span>
@@ -1650,10 +1657,38 @@ function getStockoutInfo(code){
 // ═══════════════════════════════════════════════
 // INSTANT POT
 // ═══════════════════════════════════════════════
-let ipCoverage=6, ipLeadTime=30;
+let ipCoverage=6, ipLeadTime=30, ipSortCol='stockout', ipSortAsc=true;
 try{const c=localStorage.getItem('kn_ip_coverage');if(c)ipCoverage=parseInt(c)||6;const l=localStorage.getItem('kn_ip_leadtime');if(l)ipLeadTime=parseInt(l)||30}catch(e){}
 function setIPCoverage(v){ipCoverage=parseInt(v)||6;try{localStorage.setItem('kn_ip_coverage',ipCoverage)}catch(e){}renderIPTable()}
 function setIPLeadTime(v){ipLeadTime=Math.max(0,parseInt(v)||0);try{localStorage.setItem('kn_ip_leadtime',ipLeadTime)}catch(e){}renderIPTable()}
+function ipSort(col){if(ipSortCol===col)ipSortAsc=!ipSortAsc;else{ipSortCol=col;ipSortAsc=true}renderIPTable()}
+
+// Returns the filtered + sorted list currently being displayed
+function getIPVisible(){
+  const search=(document.getElementById('ipSearch').value||'').toLowerCase();
+  const groupF=document.getElementById('ipGroup').value;
+  const filter=document.getElementById('ipFilter').value;
+  const hideNoSales=document.getElementById('ipHideNoSales').checked;
+  let items=getIPCodes().map(getIPInfo);
+  if(search)items=items.filter(r=>r.code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
+  if(groupF)items=items.filter(r=>r.group===groupF);
+  if(hideNoSales)items=items.filter(r=>r.activeMo>0);
+  if(filter==='risk')items=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0));
+  if(filter==='order')items=items.filter(r=>r.suggested>0);
+  items.sort((a,b)=>{
+    let va,vb;
+    switch(ipSortCol){
+      case'code':va=a.code;vb=b.code;break;
+      case'stock':va=a.currentStock;vb=b.currentStock;break;
+      case'avg':va=a.avg;vb=b.avg;break;
+      case'suggest':va=a.suggested??-1;vb=b.suggested??-1;break;
+      default:va=a.stockoutDate?a.stockoutDate.getTime():9e15;vb=b.stockoutDate?b.stockoutDate.getTime():9e15;
+    }
+    if(typeof va==='string'){va=va.toLowerCase();vb=String(vb).toLowerCase()}
+    return ipSortAsc?(va<vb?-1:va>vb?1:0):(va>vb?-1:va<vb?1:0);
+  });
+  return items;
+}
 
 function isInstantBrands(supplier){return /instant\s*brands/i.test(supplier||'')}
 function getIPCodes(){
@@ -1696,36 +1731,26 @@ function renderIPTab(){
   renderIPTable();
 }
 
+function ipSquares(r,forExport){
+  return r.projection.map((m,i)=>{
+    const s=m.stock;let bg;
+    if(s<0){const d=Math.min(Math.abs(s)/Math.max(r.avg*2,1),1);bg=`rgba(239,68,68,${0.35+d*0.65})`}
+    else if(s<r.avg){bg='rgba(245,158,11,.75)'}
+    else{const d=Math.min(s/Math.max(r.avg*4,1),1);bg=`rgba(34,197,94,${0.3+d*0.6})`}
+    const cls='ip-sq'+(m.receive>0?' rec':'')+(i<ipCoverage?' win':'');
+    return`<div class="${cls}" style="background:${bg}" title="${m.label}: ${m.stock}${m.receive>0?' (+'+m.receive+' arrives)':''}"></div>`;
+  }).join('');
+}
+
 function renderIPTable(){
-  const codes=getIPCodes();
-  const search=(document.getElementById('ipSearch').value||'').toLowerCase();
-  const groupF=document.getElementById('ipGroup').value;
-  const filter=document.getElementById('ipFilter').value;
+  const items=getIPVisible();
   const now=new Date();
-  let items=codes.map(getIPInfo);
-  if(search)items=items.filter(r=>r.code.toLowerCase().includes(search)||(r.description||'').toLowerCase().includes(search));
-  if(groupF)items=items.filter(r=>r.group===groupF);
-  if(filter==='risk')items=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0));
-  if(filter==='order')items=items.filter(r=>r.suggested>0);
-  items.sort((a,b)=>{
-    const ad=a.stockoutDate?a.stockoutDate.getTime():9e15,bd=b.stockoutDate?b.stockoutDate.getTime():9e15;
-    return ad-bd;
-  });
-  // summary
   const atRisk=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0)).length;
   const needOrder=items.filter(r=>r.suggested>0).length;
   document.getElementById('ipSummary').innerHTML=`${items.length} products · <span style="color:${atRisk?'var(--red)':'var(--green)'}">${atRisk} at risk</span> · ${needOrder} need order`;
-  // month header
+  const arrow=c=>ipSortCol===c?(ipSortAsc?' ▲':' ▼'):'';
   const monthHdr=items.length?items[0].projection.map(m=>`<div>${m.label.slice(0,1)}</div>`).join(''):'';
   const rows=items.map(r=>{
-    const sq=r.projection.map((m,i)=>{
-      const s=m.stock;let bg;
-      if(s<0){const d=Math.min(Math.abs(s)/Math.max(r.avg*2,1),1);bg=`rgba(239,68,68,${0.35+d*0.65})`}
-      else if(s<r.avg){bg='rgba(245,158,11,.75)'}
-      else{const d=Math.min(s/Math.max(r.avg*4,1),1);bg=`rgba(34,197,94,${0.3+d*0.6})`}
-      const cls='ip-sq'+(m.receive>0?' rec':'')+(i<ipCoverage?' win':'');
-      return`<div class="${cls}" style="background:${bg}" title="${m.label}: ${m.stock}${m.receive>0?' (+'+m.receive+' arrives)':''}"></div>`;
-    }).join('');
     const soH=!r.avg?'<span style="color:var(--text3)">no data</span>':r.stockoutDate?`<span style="color:${r.stockoutDate<addMonths(now,2)?'var(--red)':'var(--text2)'}">${fmtDate(r.stockoutDate)}</span>`:'<span style="color:var(--green)">15+ mo</span>';
     const obH=r.orderByDate?`<span style="color:${r.orderByDate<now?'var(--red)':'var(--text2)'}">${fmtDate(r.orderByDate)}${r.orderByDate<now?' ⚠':''}</span>`:'—';
     const sugH=r.suggested===null?'<span style="color:var(--text3)">—</span>':r.suggested>0?`<span style="color:var(--purple);font-weight:600">${r.suggested.toLocaleString()}</span>`:'<span style="color:var(--text3)">covered</span>';
@@ -1734,12 +1759,132 @@ function renderIPTable(){
       <div class="ip-num" title="Current stock">${r.currentStock}${r.incoming?`<br><span style="font-size:9px;color:var(--cyan)">+${r.incoming}</span>`:''}</div>
       <div class="ip-num" title="Avg/mo (active months)">${r.avg||'—'}<br><span style="font-size:9px;color:var(--text3)">${r.activeMo}/${r.totalMo}</span></div>
       <div class="ip-num" title="Suggested order for ${ipCoverage} months">${sugH}</div>
-      <div><div class="ip-months">${monthHdr}</div><div class="ip-grid">${sq}</div><div style="font-size:9px;color:var(--text3);margin-top:3px">out ${soH} · order by ${obH}</div></div>
+      <div><div class="ip-months">${monthHdr}</div><div class="ip-grid">${ipSquares(r)}</div><div style="font-size:9px;color:var(--text3);margin-top:3px">out ${soH} · order by ${obH}</div></div>
     </div>`;
   }).join('');
   document.getElementById('ipList').innerHTML=
-    `<div class="ip-row ip-head"><div>Product</div><div class="ip-num">Stock</div><div class="ip-num">Avg/mo</div><div class="ip-num">Suggest</div><div>15-month projection</div></div>`+
+    `<div class="ip-row ip-head"><div class="sortable" onclick="ipSort('code')">Product${arrow('code')}</div><div class="ip-num sortable" onclick="ipSort('stock')">Stock${arrow('stock')}</div><div class="ip-num sortable" onclick="ipSort('avg')">Avg/mo${arrow('avg')}</div><div class="ip-num sortable" onclick="ipSort('suggest')">Suggest${arrow('suggest')}</div><div class="sortable" onclick="ipSort('stockout')">15-month projection${arrow('stockout')}</div></div>`+
     (rows||'<div style="padding:30px;text-align:center;color:var(--text3)">No products match these filters.</div>');
+}
+
+function exportIPReport(){
+  const items=getIPVisible();
+  if(!items.length){toast('Nothing to export','error');return}
+  const noSug=document.getElementById('ipExportNoSuggest').checked;
+  const now=new Date();
+  const atRisk=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0)).length;
+  const needOrder=items.filter(r=>r.suggested>0).length;
+  const months=items[0].projection.map(m=>m.label);
+  // Grid: drop the Suggest column when suggestions are excluded
+  const cols=noSug?'minmax(200px,1fr) 64px 64px 200px':'minmax(200px,1fr) 64px 64px 74px 200px';
+
+  const payload=items.map(r=>{
+    const o={code:r.code,description:r.description,group:r.group,stock:r.currentStock,incoming:r.incoming,
+      avg:r.avg,activeMo:r.activeMo,totalMo:r.totalMo,cost:r.cost,currency:r.costCurrency,
+      stockout:r.stockoutDate?fmtDate(r.stockoutDate):'',orderBy:r.orderByDate?fmtDate(r.orderByDate):'',
+      proj:r.projection.map(m=>m.stock)};
+    if(!noSug)o.suggested=r.suggested;
+    return o;
+  });
+
+  const rows=items.map(r=>{
+    const so=!r.avg?'<span class="dim">no data</span>':r.stockoutDate?`<span class="${r.stockoutDate<addMonths(now,2)?'red':''}">${fmtDate(r.stockoutDate)}</span>`:'<span class="grn">15+ mo</span>';
+    const ob=r.orderByDate?`<span class="${r.orderByDate<now?'red':''}">${fmtDate(r.orderByDate)}${r.orderByDate<now?' ⚠':''}</span>`:'—';
+    const sug=r.suggested===null?'<span class="dim">—</span>':r.suggested>0?`<span class="pur">${r.suggested.toLocaleString()}</span>`:'<span class="dim">covered</span>';
+    return`<div class="row">
+      <div class="nm"><span class="c">${escHtml(r.code)}</span> <span class="d">${escHtml(r.description)}</span></div>
+      <div class="n">${r.currentStock}${r.incoming?`<br><span class="cy">+${r.incoming}</span>`:''}</div>
+      <div class="n">${r.avg||'—'}<br><span class="dim sm">${r.activeMo}/${r.totalMo}</span></div>
+      ${noSug?'':`<div class="n">${sug}</div>`}
+      <div><div class="mh">${months.map(m=>`<div>${m.slice(0,1)}</div>`).join('')}</div><div class="gr">${ipSquares(r)}</div><div class="sub">out ${so} · order by ${ob}</div></div>
+    </div>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Instant Pot — Stock Review</title><style>
+*{box-sizing:border-box}body{margin:0;padding:28px;background:#0d1117;color:#c9d1d9;font:13px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+.wrap{max-width:1100px;margin:0 auto}h1{font-size:22px;color:#fff;margin:0 0 4px}
+.sub0{color:#8b949e;font-size:13px;margin-bottom:18px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.kpi{background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px 16px;min-width:110px}
+.kpi .l{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#8b949e}
+.kpi .v{font-size:19px;color:#fff;font-weight:600;margin-top:2px}.kpi .v.red{color:#ef4444}.kpi .v.pur{color:#a78bfa}
+.legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:#8b949e;margin-bottom:12px}
+.lg{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:-1px;margin-right:4px}
+.row{display:grid;grid-template-columns:${cols};gap:14px;align-items:center;padding:7px 10px;border-bottom:1px solid #21262d;font-size:12px}
+.row.head{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#8b949e;font-weight:600;border-bottom:1px solid #30363d}
+.row:not(.head):hover{background:#161b22}
+.nm{overflow:hidden}.nm .c{font-family:ui-monospace,Menlo,monospace;color:#fff}.nm .d{color:#8b949e;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n{text-align:right;font-family:ui-monospace,Menlo,monospace}
+.gr{display:grid;grid-template-columns:repeat(15,10px);gap:2px}
+.mh{display:grid;grid-template-columns:repeat(15,10px);gap:2px;font-size:7px;color:#6e7681;text-align:center;line-height:1;margin-bottom:2px}
+.ip-sq{width:10px;height:10px;border-radius:2px}
+.ip-sq.rec{outline:1.5px solid #a78bfa;outline-offset:-1px}
+.ip-sq.win{box-shadow:inset 0 0 0 1px rgba(167,139,250,.3)}
+.sub{font-size:9px;color:#6e7681;margin-top:3px}
+.dim{color:#6e7681}.sm{font-size:9px}.red{color:#ef4444}.grn{color:#22c55e}.pur{color:#a78bfa}.cy{color:#06b6d4;font-size:9px}
+button{background:#a78bfa;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+button:hover{background:#8b6fe0}
+footer{margin-top:26px;padding-top:12px;border-top:1px solid #21262d;color:#6e7681;font-size:11px}
+</style></head><body><div class="wrap">
+<h1>Instant Pot — Stock Review</h1>
+<div class="sub0">${items.length} products · ${ipCoverage}-month coverage · ${ipLeadTime}-day lead time · generated ${now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+<div class="kpis">
+  <div class="kpi"><div class="l">Products</div><div class="v">${items.length}</div></div>
+  <div class="kpi"><div class="l">At risk</div><div class="v ${atRisk?'red':''}">${atRisk}</div></div>
+  ${noSug?'':`<div class="kpi"><div class="l">Need order</div><div class="v pur">${needOrder}</div></div>`}
+  <div class="kpi" style="display:flex;align-items:center"><button onclick="toExcel()">⬇ Export to Excel</button></div>
+</div>
+<div class="legend">
+  <span><span class="lg" style="background:rgba(239,68,68,.8)"></span>stockout</span>
+  <span><span class="lg" style="background:rgba(245,158,11,.75)"></span>under 1 month cover</span>
+  <span><span class="lg" style="background:rgba(34,197,94,.7)"></span>healthy</span>
+  <span><span class="lg" style="outline:1.5px solid #a78bfa;background:transparent"></span>stock arrives</span>
+  <span><span class="lg" style="box-shadow:inset 0 0 0 1px rgba(167,139,250,.5)"></span>coverage window</span>
+</div>
+<div class="row head"><div>Product</div><div class="n">Stock</div><div class="n">Avg/mo</div>${noSug?'':'<div class="n">Suggest</div>'}<div>15-month projection</div></div>
+${rows}
+<footer>Generated by Dashb · projections include incoming POs not yet received · squares show projected end-of-month stock</footer>
+</div>
+<script>
+var DATA=${JSON.stringify(payload)};
+var MONTHS=${JSON.stringify(months)};
+var NOSUG=${noSug?'true':'false'};
+function toExcel(){
+  var head=['Code','Description','Group','Stock','Incoming','Avg/mo','Active months'];
+  if(!NOSUG)head.push('Suggested');
+  head=head.concat(['Cost','Currency','Stockout','Order by']).concat(MONTHS);
+  var lines=[head];
+  DATA.forEach(function(r){
+    var row=[r.code,r.description,r.group,r.stock,r.incoming,r.avg,r.activeMo+'/'+r.totalMo];
+    if(!NOSUG)row.push(r.suggested===null?'':r.suggested);
+    row=row.concat([(r.cost==null?'':r.cost),(r.currency||''),r.stockout,r.orderBy]).concat(r.proj);
+    lines.push(row);
+  });
+  var xml='<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Instant Pot"><Table>';
+  lines.forEach(function(row,ri){
+    xml+='<Row>';
+    row.forEach(function(cell){
+      var isNum=(typeof cell==='number')&&isFinite(cell);
+      var v=String(cell==null?'':cell).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      xml+='<Cell><Data ss:Type="'+(isNum&&ri>0?'Number':'String')+'">'+v+'</Data></Cell>';
+    });
+    xml+='</Row>';
+  });
+  xml+='</Table></Worksheet></Workbook>';
+  var blob=new Blob([xml],{type:'application/vnd.ms-excel'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='instant_pot_review.xls';
+  a.click();
+}
+<\/script></body></html>`;
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='instant_pot_review_'+now.toISOString().split('T')[0]+'.html';
+  a.click();URL.revokeObjectURL(url);
+  toast(`Exported ${items.length} products`);
 }
 
 function renderChinaTab(){const codes=Object.keys(chinaProducts);if(!codes.length){document.getElementById('chinaEmpty').style.display='block';document.getElementById('chinaDash').style.display='none';return}document.getElementById('chinaEmpty').style.display='none';document.getElementById('chinaDash').style.display='block';renderChinaTable()}
