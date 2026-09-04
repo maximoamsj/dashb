@@ -1775,12 +1775,14 @@ function exportIPReport(){
   const atRisk=items.filter(r=>r.projection.slice(0,ipCoverage).some(m=>m.stock<0)).length;
   const needOrder=items.filter(r=>r.suggested>0).length;
   const months=items[0].projection.map(m=>m.label);
+  const expGroups=[...new Set(items.map(r=>r.group).filter(Boolean))].sort();
   // Grid: drop the Suggest column when suggestions are excluded
   const cols=noSug?'minmax(200px,1fr) 64px 64px 200px':'minmax(200px,1fr) 64px 64px 74px 200px';
 
   const payload=items.map(r=>{
     const o={code:r.code,description:r.description,group:r.group,stock:r.currentStock,incoming:r.incoming,
       avg:r.avg,activeMo:r.activeMo,totalMo:r.totalMo,cost:r.cost,currency:r.costCurrency,
+      atRisk:r.projection.slice(0,ipCoverage).some(m=>m.stock<0),
       stockout:r.stockoutDate?fmtDate(r.stockoutDate):'',orderBy:r.orderByDate?fmtDate(r.orderByDate):'',
       proj:r.projection.map(m=>m.stock)};
     if(!noSug)o.suggested=r.suggested;
@@ -1791,7 +1793,7 @@ function exportIPReport(){
     const so=!r.avg?'<span class="dim">no data</span>':r.stockoutDate?`<span class="${r.stockoutDate<addMonths(now,2)?'red':''}">${fmtDate(r.stockoutDate)}</span>`:'<span class="grn">15+ mo</span>';
     const ob=r.orderByDate?`<span class="${r.orderByDate<now?'red':''}">${fmtDate(r.orderByDate)}${r.orderByDate<now?' ⚠':''}</span>`:'—';
     const sug=r.suggested===null?'<span class="dim">—</span>':r.suggested>0?`<span class="pur">${r.suggested.toLocaleString()}</span>`:'<span class="dim">covered</span>';
-    return`<div class="row">
+    return`<div class="row" data-group="${escHtml(r.group||'')}" data-risk="${r.projection.slice(0,ipCoverage).some(m=>m.stock<0)?'1':'0'}" data-order="${r.suggested>0?'1':'0'}">
       <div class="nm"><span class="c">${escHtml(r.code)}</span> <span class="d">${escHtml(r.description)}</span></div>
       <div class="n">${r.currentStock}${r.incoming?`<br><span class="cy">+${r.incoming}</span>`:''}</div>
       <div class="n">${r.avg||'—'}<br><span class="dim sm">${r.activeMo}/${r.totalMo}</span></div>
@@ -1824,15 +1826,35 @@ function exportIPReport(){
 .dim{color:#6e7681}.sm{font-size:9px}.red{color:#ef4444}.grn{color:#22c55e}.pur{color:#a78bfa}.cy{color:#06b6d4;font-size:9px}
 button{background:#a78bfa;color:#fff;border:0;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
 button:hover{background:#8b6fe0}
+.controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#161b22;border:1px solid #21262d;border-radius:8px;padding:10px 14px;margin-bottom:14px}
+.controls label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#8b949e;display:flex;align-items:center;gap:7px}
+.controls select{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;border-radius:5px;padding:5px 9px;font-size:12px;font-family:inherit;text-transform:none;letter-spacing:0;max-width:260px}
+.controls select:focus{outline:none;border-color:#a78bfa}
+#shown{margin-left:auto;font-size:11px;text-transform:none;letter-spacing:0}
 footer{margin-top:26px;padding-top:12px;border-top:1px solid #21262d;color:#6e7681;font-size:11px}
 </style></head><body><div class="wrap">
 <h1>Instant Pot — Stock Review</h1>
 <div class="sub0">${items.length} products · ${ipCoverage}-month coverage · ${ipLeadTime}-day lead time · generated ${now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
 <div class="kpis">
-  <div class="kpi"><div class="l">Products</div><div class="v">${items.length}</div></div>
-  <div class="kpi"><div class="l">At risk</div><div class="v ${atRisk?'red':''}">${atRisk}</div></div>
-  ${noSug?'':`<div class="kpi"><div class="l">Need order</div><div class="v pur">${needOrder}</div></div>`}
+  <div class="kpi"><div class="l">Products</div><div class="v" id="kProducts">${items.length}</div></div>
+  <div class="kpi"><div class="l">At risk</div><div class="v ${atRisk?'red':''}" id="kRisk">${atRisk}</div></div>
+  ${noSug?'':`<div class="kpi"><div class="l">Need order</div><div class="v pur" id="kOrder">${needOrder}</div></div>`}
   <div class="kpi" style="display:flex;align-items:center"><button onclick="toExcel()">⬇ Export to Excel</button></div>
+</div>
+<div class="controls">
+  <label>Item group
+    <select id="fGroup" onchange="applyFilter()">
+      <option value="">All groups (${expGroups.length})</option>
+      ${expGroups.map(g=>`<option value="${escHtml(g)}">${escHtml(g)}</option>`).join('')}
+    </select>
+  </label>
+  <label>Show
+    <select id="fShow" onchange="applyFilter()">
+      <option value="all">All products</option>
+      <option value="risk">At risk only</option>
+    </select>
+  </label>
+  <span id="shown" class="dim"></span>
 </div>
 <div class="legend">
   <span><span class="lg" style="background:rgba(239,68,68,.8)"></span>stockout</span>
@@ -1849,12 +1871,42 @@ ${rows}
 var DATA=${JSON.stringify(payload)};
 var MONTHS=${JSON.stringify(months)};
 var NOSUG=${noSug?'true':'false'};
+
+function applyFilter(){
+  var g=document.getElementById('fGroup').value;
+  var s=document.getElementById('fShow').value;
+  var rows=document.querySelectorAll('.row:not(.head)');
+  var n=0, risk=0, ord=0;
+  rows.forEach(function(el){
+    var okG=!g||el.getAttribute('data-group')===g;
+    var okS=(s!=='risk')||el.getAttribute('data-risk')==='1';
+    var vis=okG&&okS;
+    el.style.display=vis?'':'none';
+    if(vis){n++;if(el.getAttribute('data-risk')==='1')risk++;if(el.getAttribute('data-order')==='1')ord++}
+  });
+  document.getElementById('kProducts').textContent=n;
+  document.getElementById('kRisk').textContent=risk;
+  document.getElementById('kRisk').className='v'+(risk?' red':'');
+  var ko=document.getElementById('kOrder');if(ko)ko.textContent=ord;
+  document.getElementById('shown').textContent=g||s!=='all'?('showing '+n+' of '+rows.length):'';
+}
+
+function currentRows(){
+  var g=document.getElementById('fGroup').value;
+  var s=document.getElementById('fShow').value;
+  return DATA.filter(function(r,i){
+    if(g&&r.group!==g)return false;
+    if(s==='risk'&&!r.atRisk)return false;
+    return true;
+  });
+}
+
 function toExcel(){
   var head=['Code','Description','Group','Stock','Incoming','Avg/mo','Active months'];
   if(!NOSUG)head.push('Suggested');
   head=head.concat(['Cost','Currency','Stockout','Order by']).concat(MONTHS);
   var lines=[head];
-  DATA.forEach(function(r){
+  currentRows().forEach(function(r){
     var row=[r.code,r.description,r.group,r.stock,r.incoming,r.avg,r.activeMo+'/'+r.totalMo];
     if(!NOSUG)row.push(r.suggested===null?'':r.suggested);
     row=row.concat([(r.cost==null?'':r.cost),(r.currency||''),r.stockout,r.orderBy]).concat(r.proj);
